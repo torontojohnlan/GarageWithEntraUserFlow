@@ -1,0 +1,4 @@
+f574eaab-c385-4861-84e0-4ed22d4d884e policy id
+77bc2777-a505-4c78-b114-d01246459053 consuming app id
+cbbe02c4-0eff-47aa-8627-1fbee5c1d893 app object id
+6e5cc346-aff8-402e-a6a9-3247b69d2cf8 extension app client id

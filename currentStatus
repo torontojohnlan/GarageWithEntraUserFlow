@@ -1,0 +1,9 @@
+application extension returned from ID token claim 
+user flow collects deviceID in schema extension
+Need a custom auth extension to copy deviceID value collected in user flow to app-specific extension deviceID
+
+custom auth extension defined in Entra an hook to an API URI
+now just need to implement the API in server.js
+
+once logged in, user sees website can't be  reached error
+I may be using a wrong Custom Auth Extension (CAE). What I am using now is onTokenIssuance. What I may need instead: AttributeCollectionSubmit
