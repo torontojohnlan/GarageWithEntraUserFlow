@@ -7,3 +7,19 @@ now just need to implement the API in server.js
 
 once logged in, user sees website can't be  reached error
 I may be using a wrong Custom Auth Extension (CAE). What I am using now is onTokenIssuance. What I may need instead: AttributeCollectionSubmit
+
+CAE done, but doesn't work
+Need to find a way of debugging. Not sure if the control was ever transferred to CAE as no output was shown
+
+Entra can't redirect user flow to a CAE rest API that is on localhost. It has to be on a public available endpoint. This can be done via ngrok
+
+ngrok worked
+CAE is called
+need to manipulate claim with CAE handler in hoping the system will then clone value for me, instead of patching the user by myself using Graph API
+
+can get pass CAE with custom claims. Looks like I need a claim mapping policy(according to copilot)
+check with claude and grok
+
+claim mapping policy doesn't seem fit. Will try patch. But the claim is still not correct
+
+it's possible to add schema attribute into claim (use Custom Claim Provider), which makes CAE unneccssary

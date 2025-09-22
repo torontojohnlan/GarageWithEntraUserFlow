@@ -2,35 +2,48 @@ const express = require('express');
 const session = require('express-session');
 const axios = require('axios');
 const app = express();
-const https = require('https');
+// const https = require('https');
 const jwt = require('jsonwebtoken');
 const fs = require('fs');
-const privatekey = fs.readFileSync('./privatekey.txt','utf8'); // for token signing
-// console.log('Loading private key from garage.pem:', privatekey ? privatekey : 'Failed to load key');
+const tokenSigningKey = fs.readFileSync('./tokenSigningKey.txt', 'utf8'); // for token signing
+// console.log('Loading private key from garage.pem:', tokenSigningKey ? tokenSigningKey : 'Failed to load key');
 const { v4: uuidv4 } = require('uuid');
 
 const HOST = process.env.HOST || 'localhost';
 
+let debugMode, PORT, protocol;
 if (HOST === 'localhost') {
   // require('dotenv').config({ path: '.env.appParameters' });
   require('dotenv').config({ path: ".env.EntraParameters" });
   require('dotenv').config({ path: ".env.appParameters" });
+  debugMode = true;
+  protocol = 'http';
+  PORT = 80
   console.log('Debug mode is ON. Using .env.appParameters and .env.EntraParameters');
 } else {
+  debugMode = false;
+  protocol = 'https';
+  PORT = 443;
   console.log('Debug mode is OFF. Using environment variables directly.');
 }
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const tenantId = process.env.TENANT_ID; // Use your tenant ID or set it in .env
 const TENANT_NAME = process.env.TENANT_NAME; // Use your tenant name or set it in .env
-const REDIRECT_URI = process.env.REDIRECT_URI;
 const AUTHORITY = process.env.AUTHORITY;
 const EntraExtensionAppID = process.env.EntraExtensionAppID;
-const API_SCOPE = `api://localhost/${CLIENT_ID}/deviceID.clone`; // prerequisite: you need to create a scope in Entra ID for your API, e.g., api://<your-client-id>/deviceID
+const EntraExtensionAppID_with_dash_removed = EntraExtensionAppID.replace(/-/g, ''); // e.g., 9522cfa68fa1
+const extn_deviceID = `extension_${EntraExtensionAppID_with_dash_removed}_deviceID`; // The custom attribute created in Entra ID, e.g., extension_9522cfa68fa1_deviceID
+const URI = process.env.URI;// if ngrok is used, please update env variable to match the public URI
+const REDIRECT_URI = `${protocol}://${URI}/redirect`;
+const API_SCOPE = `api://${URI}/${CLIENT_ID}/deviceID.clone`; // prerequisite: you need to create a scope in Entra ID for your API, e.g., api://<your-client-id>/deviceID
 const GARAGE_CERT_THUMBPRINT = process.env.GARAGE_CERT_THUMBPRINT; // Thumbprint of the certificate used to sign the JWT token
 
 console.log(`Using AUTHORITY: ${AUTHORITY}`);
+console.log(`Using REDIRECT_URI: ${REDIRECT_URI}`);
+console.log(`Using API_SCOPE: ${API_SCOPE}`);
 
+app.use(express.json());
 app.use(express.static('public'));
 app.use(session({
   secret: 'your_secret_v3ry_$7r0ng_secret', // Use a strong secret for session encryption
@@ -45,64 +58,166 @@ app.use(session({
 // The Auth Extension Handler has a helper function, which is defined as a middleware
 // Middleware to validate Entra request for extension (simplified)
 const validateEntraRequest = (req, res, next) => {
-    const authHeader = req.headers['authorization'];
-    if (!authHeader || !authHeader.startsWith('Bearer ')) {
-        return res.status(401).json({ error: 'Invalid authorization' });
-    }
-    // In production: Validate JWT against Entra's JWKS endpoint
-    next();
+  console.log('Validating Entra request with headers:', req.headers);
+  const authHeader = req.headers['authorization'];
+  if (!authHeader || !authHeader.startsWith('Bearer ')) {
+    console.error('[CAE] Missing or invalid Authorization header');
+    return res.status(401).json({ error: 'Invalid authorization' });
+  }
+  // In production: Validate JWT against Entra's JWKS endpoint
+  next();
 };
 
 // Core handler for the authentication extension
-const handleAuthExtension = async (req, res) => {
-    try {
-        const eventData = req.body;
 
-        if (eventData.eventType === 'AttributeCollectionSubmit') {
-            const user = eventData.data.authenticationContext.user;
-            console.log('[Auth Extension Handler][user info from req body]:', user);
-            const userId = user.id;
+// ----------- if we are to use attributeCollectionSubmit event -----------
+// const attributeCollectionSubmitCAE = async (req, res) => { // CAE is shorthand for Custom Authentication Extension
+//   console.log('[CAE] Received request at /api/authExtension with body:', req.body);
+//   try {
+//     const eventData = req.body;
+//     // console.log('[CAE] request body:', req.body);
+//     // if (eventData.eventType === 'AttributeCollectionSubmit') { //original line given by grok
+//     if (eventData.type === 'microsoft.graph.authenticationEvent.attributeCollectionSubmit') {
+//       const userSignUpInfo = eventData.data.userSignUpInfo;
+//       console.log('[Auth Extension Handler][user signup info from req body]:', userSignUpInfo);
 
-            // Access the custom attribute collected during signup
-            const deviceID = user[extn.deviceID];  // Not sure if the user structure contains this info, or under which field name. 
+//       // Access the custom attribute collected during signup
+//       const deviceID = userSignUpInfo.attributes[extn_deviceID];
+//       const displayName = userSignUpInfo.attributes.displayName;
+//       const signUpEmail = userSignUpInfo.identities.issuerAssignedId;
 
-            if (!deviceID) { // here we should clone value
-                return res.status(400).json({ error: `Custom signup value not found in user attributes` });
+//       if (!deviceID) { // here we should clone value
+//         return res.status(400).json({ error: `DeviceID not found in user signup data` });
+//       }
+
+//       // Store in session for app-specific use
+//       req.session.signUPmail = signUpEmail;
+//       req.session.displayName = displayName;
+//       req.session.deviceID = deviceID;
+
+//       // Copy the value to extn.deviceID
+//       // need to use graph PATCH function to clone value from the b2c app to my own app - to be done
+//       try {
+//         await axios.patch(
+//           `https://graph.microsoft.com/v1.0/users/${userId}`,
+//           {
+//             [`extension_${EntraExtensionAppID_with_dash_removed}_deviceID`]: deviceID
+//           },
+//           {
+//             headers: {
+//               Authorization: `Bearer ${accessToken}`,
+//               'Content-Type': 'application/json'
+//             }
+//           }
+//         );
+//         console.log(`Cloned deviceID to directory extension for user ${userId}`);
+//       } catch (err) {
+//         console.error('Failed to clone deviceID to directory extension:', err.response?.data || err.message);
+//       }
+
+
+//       // https://medium.com/the-new-control-plane/augmenting-sign-up-attributes-with-the-attribute-collection-start-custom-authentication-extension-757c5614be23
+
+//       // Manipulate claim value here if needed. If we are to manipulate one claim, we need to populate all other claims as well
+//       const customClaims = {
+//         "deviceID": deviceID // This will be mapped to the user's attribute if claim mapping policy is set
+//         // Not sure what the claim name should be here, either "deviceID", or "extn.deviceID"
+
+//         // email: signUpEmail;  // --> this should not be necccessary as this is part of core claim set.
+//         // verified_primary_email: signUpEmail;   // --> this should not be necccessary as this is part of core claim set.
+//       };
+
+//       // Response to Entra ID
+//       const response = {
+//         "data": {
+//           "@odata.type": "microsoft.graph.onAttributeCollectionSubmitResponseData", // added by JL as per MS doc, https://learn.microsoft.com/en-us/entra/identity-platform/custom-extension-onattributecollectionstart-retrieve-return-data
+//           "actions": [
+//             {
+//               // '@odata.type': 'microsoft.graph.onTokenIssuanceStartResponseData', // original line given by grok
+//               "@odata.type": "microsoft.graph.attributeCollectionStart.continueWithDefaultBehavior", // changed by JL as per MS doc, https://learn.microsoft.com/en-us/entra/identity-platform/custom-extension-onattributecollectionstart-retrieve-return-data
+//               // claims: customClaims
+//             }
+//           ]
+//         }
+//       };
+
+//       return res.status(200).json(response);
+//     } else {
+//       return res.status(400).json({ error: 'Unsupported event type' });
+//     }
+//   } catch (error) {
+//     console.error('Error processing auth extension:', error);
+//     return res.status(500).json({ error: 'Internal server error' });
+//   }
+// };
+// app.post('/api/preTokenCAE', validateEntraRequest, attributeCollectionSubmitCAE);   // In Entra, auth enxtension endpoint should be https://<your-domain-or-ip>/<route defined here>
+// ----------- if we are to use attributeCollectionSubmit event -----------
+
+const tokenIssuanceCAE = async (req, res) => { // CAE is shorthand for Custom Authentication Extension
+  console.log('[CAE] Received request at /api/authExtension with body:', req.body);
+  try {
+    const eventData = req.body;
+    // console.log('[CAE] request body:', req.body);
+    // if (eventData.eventType === 'AttributeCollectionSubmit') { //original line given by grok
+    if (eventData.type === 'microsoft.graph.authenticationEvent.tokenIssuanceStart') {
+      const user = eventData.data.authenticationContext.user;
+      console.log('[Auth Extension Handler][user info from req body]:', user);
+      const userId = user.id;
+
+      // Store in session for app-specific use
+      req.session.id = userId;
+      req.session.displayName = user.displayName;
+      req.session.deviceID = user.deviceID;
+
+      // Copy the value to extn.deviceID
+      // need to use graph PATCH function to clone value from the b2c app to my own app - to be done
+      // try {
+      //   await axios.patch(
+      //     `https://graph.microsoft.com/v1.0/users/${userId}`,
+      //     {
+      //       [`extension_${EntraExtensionAppID_with_dash_removed}_deviceID`]: deviceID
+      //     },
+      //     {
+      //       headers: {
+      //         Authorization: `Bearer ${accessToken}`,
+      //         'Content-Type': 'application/json'
+      //       }
+      //     }
+      //   );
+      //   console.log(`Cloned deviceID to directory extension for user ${userId}`);
+      // } catch (err) {
+      //   console.error('Failed to clone deviceID to directory extension:', err.response?.data || err.message);
+      // }
+
+      // Response to Entra ID
+      const response = {
+        "data": {
+          "@odata.type": "microsoft.graph.onTokenIssuanceStartResponseData", // added by JL as per MS doc, https://learn.microsoft.com/en-us/entra/identity-platform/custom-extension-onattributecollectionstart-retrieve-return-data
+          "actions": [
+            {
+              '@odata.type': 'microsoft.graph.onTokenIssuanceStartResponseData.provideClaimsForToken', // original line given by grok
+              // claims: customClaims
             }
-
-            // Copy the value to a custom claim in the token
-            const customClaims = {
-                deviceID: deviceID
-            };
-
-            // Store in session for app-specific use
-            req.session.userId = userId;
-            req.session.deviceID = deviceID;
-
-            // Response to Entra ID
-            const response = {
-                data: {
-                    actions: [
-                        {
-                            '@odata.type': '#microsoft.graph.onTokenIssuanceStartResponseData',
-                            claims: customClaims
-                        }
-                    ]
-                }
-            };
-
-            return res.status(200).json(response);
-        } else {
-            return res.status(400).json({ error: 'Unsupported event type' });
+          ]
         }
-    } catch (error) {
-        console.error('Error processing auth extension:', error);
-        return res.status(500).json({ error: 'Internal server error' });
+      };
+
+      return res.status(200).json(response);
+    } else {
+      return res.status(400).json({ error: 'Unsupported event type' });
     }
+  } catch (error) {
+    console.error('Error processing auth extension:', error);
+    return res.status(500).json({ error: 'Internal server error' });
+  }
 };
 
 // Custom Authentication Extension Endpoint (for Entra)
-app.post('/api/authExtension', validateEntraRequest, handleAuthExtension);   // In Entra, auth enxtension endpoint should be https://<your-domain-or-ip>/api/authExtension
+// Note: With the help of "Custom Claim Provider" under Enterprise applications → All applications → select your app → Single sign-on → Attributes & claims → Advanced settings → Custom claims provider
+// This is also where we can bind the app to a preTokenIssuance event
+// 
+//  We no longer need CAE but I will leave the coee in here for reference
+app.post('/api/preTokenCAE', validateEntraRequest, tokenIssuanceCAE);   // In Entra, auth enxtension endpoint should be https://<your-domain-or-ip>/<route defined here>
 //#endregion Auth Extension API
 
 
@@ -126,10 +241,12 @@ app.get('/login', (req, res) => {
 });
 
 app.get('/redirect', async (req, res) => { // once Entra successfully authenticates the user, it will redirect to this endpoint with a code
+  console.log('[/redirect] Received request with query:', req.query);
+  console.log('[/redirect] request body: ', req);
   const code = req.query.code;
   if (!code) return res.redirect('/');
   else {
-    console.log(`/redirect:exchange auth code for access token. Received authorization code: ${code}`)
+    // console.log(`/redirect:exchange auth code for access token. Received authorization code: ${code}`)
   };
 
   const now = Math.floor(Date.now() / 1000); // Current time in seconds since epoch
@@ -143,7 +260,7 @@ app.get('/redirect', async (req, res) => { // once Entra successfully authentica
       nbf: now,
       exp: now + 600 // Token valid for 10 minutes
     },
-    privatekey,
+    tokenSigningKey,
     {
       // algorithm: 'RS256'
       header: {
@@ -198,35 +315,39 @@ app.get('/redirect', async (req, res) => { // once Entra successfully authentica
 app.get('/api/profile', (req, res) => {
   if (!req.session.id_token) return res.status(401).json({ error: 'Not authenticated' });
 
-  // Decode JWT to get claims (including custom attributes)
+  // Decode ID token to get claims (including custom attributes)
   const base64Payload = req.session.id_token.split('.')[1];
   const payload = JSON.parse(Buffer.from(base64Payload, 'base64').toString());
   console.log('Decoded ID Token Payload:', payload);
-  console.log(`accessToken.deviceID: ${payload['extn.deviceID']}`);
+  console.log(`ID Token.deviceID: ${payload['extn.deviceID']}`);
   // console.log(`accessToken.extension_xxx_deviceID: ${payload[`extension_${EntraExtensionAppID}_deviceID`]}`);
 
   // Decode Access token
   const base64AccessPayload = req.session.access_token.split('.')[1];
   const accessPayload = JSON.parse(Buffer.from(base64AccessPayload, 'base64').toString());
 
-  console.log('Decoded Access Token Payload:', accessPayload);
-  console.log(`accessToken.deviceID: ${accessPayload['extn.deviceID']}`);
+  // console.log('Decoded Access Token Payload:', accessPayload); // deviceID is in ID token not in access token
+  // console.log(`accessToken.deviceID: ${accessPayload['extn.deviceID']}`); 
   // console.log(`accessToken.extension_xxx_deviceID: ${accessPayload[`extension_${EntraExtensionAppID}_deviceID`]}`);
 
   res.json({
-    name: payload.name,
-    dummyField: 'This is a dummy field to test the API',
-    // deviceID1: payload[`extension_${EntraExtensionAppID}_deviceID`], // or 'deviceID' if mapped
-    deviceID2: payload['extn.deviceID'], // simply reference with '.deviceID' since we deployed the claim mapping policy
-
+    DisplayName: payload.name,  // this is displayName in Entra
+    DeviceID: payload['userDeviceID'], // simply reference with '.deviceID' since we deployed the claim mapping policy
+    UPN: payload.preferred_username,
   });
 });
 
-const options = {
-  cert: fs.readFileSync('./HTTPS_SERVER.crt','utf8'),
-  key: fs.readFileSync('./HTTPS_SERVER.key','utf8'),
-  secureProtocol: "TLSv1_2_method"  // force TLS 1.2
-};
-const httpsServer = https.createServer(options, app);
+app.listen(PORT, HOST, () => {
+  console.log(`Server running on ${protocol}://${HOST}:${PORT}`);
+})
 
-httpsServer.listen(443, HOST, () => console.log('Server running on https://localhost:443'));
+// Below 7 lines are for HTTPS server setup, in case you want to run with HTTPS locally
+// const options = {
+//   cert: fs.readFileSync('./HTTPS_SERVER.crt','utf8'),
+//   key: fs.readFileSync('./HTTPS_SERVER.key','utf8'),
+//   secureProtocol: "TLSv1_2_method"  // force TLS 1.2
+// };
+// const httpsServer = https.createServer(options, app);
+
+// httpsServer.listen(443, HOST, () => console.log('Server running on https://localhost:443'));
+
