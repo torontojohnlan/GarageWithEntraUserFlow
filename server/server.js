@@ -317,8 +317,8 @@ app.get('/redirect', async (req, res) => { // once Entra successfully authentica
     req.session.access_token = tokenRes.data.access_token;
     showDebugMsg('Token response data:', tokenRes.data);
     showDebugMsg('ID Token:', req.session.id_token);
-    showDebugMsg("redirecting to /garage.html");
-    res.redirect('/public/garage.html');
+    showDebugMsg("redirecting to /userProfile.html");
+    res.redirect('/public/userProfile.html');
   } catch (err) {
     console.error('Token exchange error:', err.response?.data || err.message);
     res.status(500).send('Token exchange failed');

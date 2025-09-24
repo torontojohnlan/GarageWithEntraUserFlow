@@ -1,0 +1,38 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <title>User Profile</title>
+    <script>
+        window.onload = async function () {
+            try {
+                const res = await fetch('/api/garage');
+                const user = await res.json();
+                if (user.error) {
+                    document.body.innerHTML = `<h1>Error</h1><p>${user.error}</p>`;
+                    return;
+                }
+                document.getElementById('displayName').innerText = user.DisplayName || 'N/A';
+                document.getElementById('deviceID').innerText = user.DeviceID || 'N/A';
+                document.getElementById('upn').innerText = user.UPN || 'N/A';
+            } catch (err) {
+                document.body.innerHTML = `<h1>Error</h1><p>Could not load user profile.</p>`;
+                console.error(err);
+            }
+        };
+    </script>
+</head>
+<body>
+    <h1>User Profile</h1>
+    <ul>
+        <li><strong>Display Name:</strong> <span id="displayName"></span></li>
+        <li><strong>Device ID:</strong> <span id="deviceID"></span></li>
+        <li><strong>UPN:</strong> <span id="upn"></span></li>
+    </ul>
+    <nav>
+        <a href="/public/editProfile.html">Edit Profile</a> |
+        <a href="/public/garage.html">Garage Control</a>
+        <a href="/public/logout.html">Logout</a> |
+    </nav>
+</body>
+</html>
