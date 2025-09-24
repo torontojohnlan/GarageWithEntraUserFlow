@@ -1,25 +1,8 @@
-application extension returned from ID token claim 
-user flow collects deviceID in schema extension
-Need a custom auth extension to copy deviceID value collected in user flow to app-specific extension deviceID
+Multiple devices connection worked;
+Entra user sign in and sign up work
 
-custom auth extension defined in Entra an hook to an API URI
-now just need to implement the API in server.js
-
-once logged in, user sees website can't be  reached error
-I may be using a wrong Custom Auth Extension (CAE). What I am using now is onTokenIssuance. What I may need instead: AttributeCollectionSubmit
-
-CAE done, but doesn't work
-Need to find a way of debugging. Not sure if the control was ever transferred to CAE as no output was shown
-
-Entra can't redirect user flow to a CAE rest API that is on localhost. It has to be on a public available endpoint. This can be done via ngrok
-
-ngrok worked
-CAE is called
-need to manipulate claim with CAE handler in hoping the system will then clone value for me, instead of patching the user by myself using Graph API
-
-can get pass CAE with custom claims. Looks like I need a claim mapping policy(according to copilot)
-check with claude and grok
-
-claim mapping policy doesn't seem fit. Will try patch. But the claim is still not correct
-
-it's possible to add schema attribute into claim (use Custom Claim Provider), which makes CAE unneccssary
+To do: 
+    1. change homepage so it provides links to 
+        1.1 garage remote control page
+        1.2 change one's deviceID
+        1.3 logout
