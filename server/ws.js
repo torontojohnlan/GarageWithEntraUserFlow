@@ -1,26 +1,31 @@
 const WebSocket = require("ws");
 const { isChannelMessage, isConnectMessage, isDataMessage } = require("grage-lib-jl/dist/cjs/lib.js");
-const { Emailer } = require("./johnMailer.js");
 const dotenv = require('dotenv');
-if ((!process.env.debug) || (process.env.debug === 'true')) {
-    dotenv.config({ path: '.env.mailerConfig' });
-}
+
 const lostConnectionIntervals = new Map();
 let doorOpenTimeout;
 const HOST = process.env.HOST || 'localhost';
 
 let debugMode;
 if (HOST === 'localhost') {
-  debugMode = true;
+    debugMode = true;
 }else{
     debugMode = false;
-
+    
 }
+
 function showDebugMsg(...args) {
     if (debugMode)
         console.log(...args);
 }
-showDebugMsg("[mySocketServer], process.env.DEBUG: ", process.env.DEBUG);
+showDebugMsg("[mySocketServer], DEBUG mode: ", debugMode);
+
+if (debugMode) {
+    // showDebugMsg("path for mailerConfig:",__dirname + '\\.env.mailerConfig' );
+    dotenv.config({ path: __dirname + '\\.env.mailerConfig' });
+    showDebugMsg("[ws.js][initializing] mailjet_Secrect: ", process.env.mailjet_Secrect);
+}
+const { Emailer } = require("./johnMailer.js");
 
 function makeWss(options = {
     connectionTimeout: 60 * 1000,

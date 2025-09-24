@@ -22,7 +22,6 @@ const HOST = process.env.HOST || 'localhost';
 
 let debugMode, PORT, protocol;
 if (HOST === 'localhost') {
-  // require('dotenv').config({ path: '.env.appParameters' });
   require('dotenv').config({ path: ".env.EntraParameters" });
   require('dotenv').config({ path: ".env.appParameters" });
   debugMode = true;
