@@ -1,0 +1,61 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>User Profile</title>
+    <link rel="stylesheet" href="styles.css">
+    <script>
+        window.onload = async function () {
+            try {
+                const res = await fetch('/api/retrieveUserProfile');
+                const user = await res.json();
+                if (user.error) {
+                    document.getElementById('content').innerHTML = `
+                        <h1>Error</h1>
+                        <p class="error">${user.error}</p>
+                        <button class="btn btn-primary" onclick="window.location.href='/login'">Back to Login</button>
+                    `;
+                    return;
+                }
+                document.getElementById('displayName').innerText = user.DisplayName || 'N/A';
+                document.getElementById('deviceID').innerText = user.DeviceID || 'N/A';
+                document.getElementById('upn').innerText = user.UPN || 'N/A';
+            } catch (err) {
+                document.getElementById('content').innerHTML = `
+                    <h1>Error</h1>
+                    <p class="error">Could not load user profile.</p>
+                    <button class="btn btn-primary" onclick="window.location.href='/login'">Back to Login</button>
+                `;
+                console.error(err);
+            }
+        };
+    </script>
+</head>
+<body>
+    <div id="content">
+        <h1>👤 User Profile</h1>
+        <div id="profileData">
+            <ul>
+                <li>
+                    <strong>Display Name:</strong> 
+                    <span id="displayName">Loading...</span>
+                </li>
+                <li>
+                    <strong>Device ID:</strong> 
+                    <span id="deviceID">Loading...</span>
+                </li>
+                <li>
+                    <strong>UPN:</strong> 
+                    <span id="upn">Loading...</span>
+                </li>
+            </ul>
+        </div>
+        <nav>
+            <a href="/public/editProfile.html" class="btn btn-primary">Edit Profile</a>
+            <a href="/public/garage.html" class="btn btn-success">Garage Control</a>
+            <a href="/public/logout.html" class="btn btn-secondary">Logout</a>
+        </nav>
+    </div>
+</body>
+</html>

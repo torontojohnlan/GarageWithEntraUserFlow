@@ -19,7 +19,7 @@ window.onload = async function () {
     const grage = makeClient();
     let id;
     try {
-        const res = await fetch('/api/garage')
+        const res = await fetch('/api/retrieveUserProfile')
         const userDetails = await res.json();
         showDebugMsg('Returned JSON object: ', userDetails)
         if (userDetails.error) {
@@ -31,10 +31,10 @@ window.onload = async function () {
             return;
         } else {
             id = userDetails.DeviceID;            // Although in ID token the field is called userDeviceID but in my JSON response, the field is shorten as DeviceID
-            showDebugMsg('User details retrieved from /api/garage: ', id);
+            showDebugMsg('User details retrieved from /api/retrieveUserProfile: ', id);
         }
     } catch (err) {
-        showDebugMsg('Fetch /api/garage error: ', err);
+        showDebugMsg('Fetch /api/retrieveUserProfile error: ', err);
         document.body.innerHTML = '<h1>Server Error</h1><p>An unexpected error occurred. Please try again later.</p>';
         return;
     }

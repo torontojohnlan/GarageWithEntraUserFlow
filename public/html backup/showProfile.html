@@ -6,7 +6,7 @@
     <script>
         window.onload = async function () {
             try {
-                const res = await fetch('/api/garage');
+                const res = await fetch('/api/retrieveUserProfile');
                 const user = await res.json();
                 if (user.error) {
                     document.body.innerHTML = `<h1>Error</h1><p>${user.error}</p>`;

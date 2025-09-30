@@ -2,48 +2,103 @@
 <html lang="en">
 <head>
     <meta charset="UTF-8">
-    <meta name="viewport" content="width=device-width, initial-scale=1.0">
-    <title>Edit Profile</title>
-    <link rel="stylesheet" href="styles.css">
+    <title>Change Profile</title>
+    <style>
+        body {
+            font-family: Arial, sans-serif;
+            max-width: 600px;
+            margin: 50px auto;
+            padding: 20px;
+        }
+        .form-group {
+            margin-bottom: 15px;
+        }
+        label {
+            display: block;
+            margin-bottom: 5px;
+            font-weight: bold;
+        }
+        input[type="text"] {
+            width: 100%;
+            padding: 8px;
+            border: 1px solid #ccc;
+            border-radius: 4px;
+            font-size: 14px;
+        }
+        .readonly {
+            background-color: #f5f5f5;
+            color: #666;
+        }
+        button {
+            padding: 10px 20px;
+            margin-right: 10px;
+            border: none;
+            border-radius: 4px;
+            cursor: pointer;
+            font-size: 14px;
+        }
+        .submit-btn {
+            background-color: #007cba;
+            color: white;
+        }
+        .submit-btn:hover {
+            background-color: #005a87;
+        }
+        .back-btn {
+            background-color: #6c757d;
+            color: white;
+        }
+        .back-btn:hover {
+            background-color: #545b62;
+        }
+        .error {
+            color: red;
+            margin-top: 10px;
+        }
+        .success {
+            color: green;
+            margin-top: 10px;
+        }
+        .loading {
+            display: none;
+            color: #007cba;
+        }
+    </style>
 </head>
 <body>
-    <div id="content">
-        <h1>✏️ Edit Profile</h1>
-        <p class="text-muted">Update your profile information</p>
+    <h1>Change Profile</h1>
+    
+    <form id="profileForm">
+        <div class="form-group">
+            <label for="upn">UPN (User Principal Name):</label>
+            <input type="text" id="upn" name="upn" class="readonly" readonly>
+        </div>
         
-        <form id="profileForm">
-            <div class="form-group">
-                <label for="upn">UPN (User Principal Name):</label>
-                <input type="text" id="upn" name="upn" class="form-control readonly" readonly>
-            </div>
-            
-            <div class="form-group">
-                <label for="displayName">Display Name:</label>
-                <input type="text" id="displayName" name="displayName" class="form-control" required>
-            </div>
-            
-            <div class="form-group">
-                <label for="deviceID">Device ID:</label>
-                <input type="text" id="deviceID" name="deviceID" class="form-control" required>
-            </div>
-            
-            <div class="button-group">
-                <button type="submit" class="btn btn-primary">Update Profile</button>
-                <button type="button" class="btn btn-secondary" onclick="goBack()">Cancel</button>
-            </div>
-            
-            <div id="loading" class="loading">Updating profile...</div>
-            <div id="message"></div>
-        </form>
-    </div>
-
-    <a id="disconnect" href="/public/showProfile.html">← Back to Profile</a>
+        <div class="form-group">
+            <label for="displayName">Display Name:</label>
+            <input type="text" id="displayName" name="displayName" required>
+        </div>
+        
+        <div class="form-group">
+            <label for="deviceID">Device ID:</label>
+            <input type="text" id="deviceID" name="deviceID" required>
+        </div>
+        
+        <div>
+            <button type="submit" class="submit-btn">Update Profile</button>
+            <button type="button" class="back-btn" onclick="goBack()">Back to Profile</button>
+        </div>
+        
+        <div id="loading" class="loading">Updating profile...</div>
+        <div id="message"></div>
+    </form>
 
     <script>
         let originalProfile = {};
 
         window.onload = async function () {
             try {
+                // Load current user profile
                 const res = await fetch('/api/retrieveUserProfile');
                 const user = await res.json();
                 
@@ -52,8 +107,10 @@
                     return;
                 }
 
+                // Store original profile for comparison
                 originalProfile = user;
 
+                // Populate form fields
                 document.getElementById('upn').value = user.UPN || '';
                 document.getElementById('displayName').value = user.DisplayName || '';
                 document.getElementById('deviceID').value = user.DeviceID || '';
@@ -67,20 +124,25 @@
         document.getElementById('profileForm').addEventListener('submit', async function(e) {
             e.preventDefault();
             
-            const submitBtn = document.querySelector('button[type="submit"]');
+            const submitBtn = document.querySelector('.submit-btn');
             const loadingDiv = document.getElementById('loading');
             const messageDiv = document.getElementById('message');
             
+            // Clear previous messages
             messageDiv.innerHTML = '';
+            
+            // Show loading state
             submitBtn.disabled = true;
             loadingDiv.style.display = 'block';
             
+            // Get form data
             const formData = {
                 upn: document.getElementById('upn').value,
                 displayName: document.getElementById('displayName').value,
                 deviceID: document.getElementById('deviceID').value
             };
             
+            // Validate required fields
             if (!formData.displayName.trim() || !formData.deviceID.trim()) {
                 messageDiv.innerHTML = '<div class="error">Display Name and Device ID are required.</div>';
                 submitBtn.disabled = false;
@@ -100,13 +162,10 @@
                 const result = await response.json();
                 
                 if (response.ok) {
-                    messageDiv.innerHTML = '<div class="success">✓ Profile updated successfully!</div>';
+                    messageDiv.innerHTML = '<div class="success">Profile updated successfully!</div>';
+                    // Update original profile to reflect changes
                     originalProfile.DisplayName = formData.displayName;
                     originalProfile.DeviceID = formData.deviceID;
-                    
-                    setTimeout(() => {
-                        window.location.href = '/public/showProfile.html';
-                    }, 1500);
                 } else {
                     messageDiv.innerHTML = `<div class="error">Error: ${result.error || 'Failed to update profile'}</div>`;
                 }
@@ -124,6 +183,7 @@
             window.location.href = '/public/showProfile.html';
         }
 
+        // Warn user about unsaved changes
         window.addEventListener('beforeunload', function(e) {
             const currentDisplayName = document.getElementById('displayName').value;
             const currentDeviceID = document.getElementById('deviceID').value;

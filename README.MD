@@ -23,14 +23,14 @@
 - server.js sets up a node.js web server. This server has below endpoints and routes
     * /login: login route
     * /redirect: redirect route after successful login. This route is used by Entra 
-    * /api/garage: REST API for client side to fetch deviceID claim from ID token
+    * /api/retrieveUserProfile: REST API for client side to fetch deviceID claim from ID token
     * /ws: websocket server
     * /public: expose static folder /public
 - Flow for current version (place holder)
     * [client] user visite web server, which by default (implicit so it's not in my code) loads /public/index.html
     * [server] local script in index.html calls /login route
     * [server] login route redirected to /redirct route
-    * [server] /rediret gets access token then redirects to /public/userProfile.html page. Here depending on which link user clicks, userProfile.html/logout.html/garage.html can be loaded 
+    * [server] /rediret gets access token then redirects to /public/showProfile.html page. Here depending on which link user clicks, showProfile.html/logout.html/garage.html can be loaded 
     * [client] garage.html page runs webSocketClient.js
     * [client] webSocketClient.js establishes a channel with ws.js[server], and refresh garage.html with info it receives from the channel
 - Flow for first working version
