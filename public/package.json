@@ -1,6 +1,5 @@
 {
   "name": "grage-web-ui",
-  "type": "module",
   "version": "1.0.0",
   "devDependencies": {
     "@types/express-ws": "^3.0.5"
