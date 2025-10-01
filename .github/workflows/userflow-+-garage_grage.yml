@@ -80,4 +80,5 @@ jobs:
         with:
           app-name: 'grage'
           slot-name: 'Production'
-          package: ./server
+          package: ./server-app
+
