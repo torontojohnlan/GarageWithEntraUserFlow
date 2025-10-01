@@ -27,13 +27,13 @@ jobs:
       - name: Install server dependencies
         run: |
           cd server
-          npm install
+          npm ci
 
       # Install dependencies for public
       - name: Install public dependencies
         run: |
           cd public
-          npm install || echo "no dependencies in public"
+          npm ci || echo "no dependencies in public"
 
       # Prepare final artifact (server + public together)
       - name: Bundle app for deployment
