@@ -7,9 +7,9 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_WEBAPP_NAME: grage    # Set this to your Azure Web App name
-  AZURE_WEBAPP_PACKAGE_PATH: '.'      # Set this to the path to your web app project
-  NODE_VERSION: '20.x'                # Set this to the node version to use
+  AZURE_WEBAPP_NAME: grage              # Set this to your Azure Web App name
+  AZURE_WEBAPP_PACKAGE_PATH: '.'        # Set this to the path to your web app project
+  NODE_VERSION: '20.x'                  # Set this to the node version to use
 
 jobs:
   build:
@@ -28,12 +28,14 @@ jobs:
 
     - name: Prepare deployment package
       run: |
-        # Copy server files to root
-        cp -r server/* .
-        # Copy public folder (not into server subfolder)
-        cp -r public .
-        # Remove the now-empty server directory
-        rm -rf server
+        # Create a clean deployment directory
+        mkdir -p deploy
+        # Copy server files to deploy root
+        cp -r server/* deploy/
+        # Copy public folder to deploy
+        cp -r public deploy/
+        # Move into deploy directory for artifact upload
+        cd deploy
         # Remove node_modules to let Azure rebuild
         rm -rf node_modules
         # Verify structure
@@ -45,12 +47,9 @@ jobs:
       with:
         name: node-app
         path: |
-          package.json
-          package-lock.json
-          server.js
-          public/
-          **/*.js
-          **/*.json
+          deploy/
+          !deploy/node_modules
+          !deploy/.git
 
   deploy:
     runs-on: ubuntu-latest
