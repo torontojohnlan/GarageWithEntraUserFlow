@@ -23,12 +23,12 @@ if (HOST === 'localhost') {
   require('dotenv').config({ path: ".env.appParameters" });
   debugMode = true;
   protocol = 'http';
-  PORT = 80
+  PORT = 80;
   console.log('Debug mode is ON. Using .env.appParameters and .env.EntraParameters');
 } else {
   debugMode = false;
   protocol = 'https';
-  PORT = 443;
+  PORT = process.env.port;  //Azure app service will populate this var and the app must listen on this port
   console.log('Debug mode is OFF. Using environment variables directly.');
 }
 function showDebugMsg(...args) {
