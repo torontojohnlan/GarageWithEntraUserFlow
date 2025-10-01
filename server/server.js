@@ -4,9 +4,6 @@ const axios = require('axios');
 const app = express();
 // const https = require('https');
 const jwt = require('jsonwebtoken');
-const fs = require('fs');
-const tokenSigningKey = fs.readFileSync('./server/.env.tokenSigningKey.txt', 'utf8'); // for token signing
-// showDebugMsg('Loading private key from garage.pem:', tokenSigningKey ? tokenSigningKey : 'Failed to load key');
 const { v4: uuidv4 } = require('uuid');
 
 const expressWs = require('express-ws');
@@ -39,6 +36,14 @@ function showDebugMsg(...args) {
     console.log(...args);
 }
 
+let tokenSigningKey;
+if (debugMode) {
+  const fs = require('fs');
+  tokenSigningKey = fs.readFileSync('./server/.env.tokenSigningKey.txt', 'utf8'); // for token signing
+  // showDebugMsg('Loading private key from garage.pem:', tokenSigningKey ? tokenSigningKey : 'Failed to load key');
+} else {
+  tokenSigningKey = process.env.TOKEN_SIGNING_KEY.replace(/\\n/g, '\n'); // for token signing
+}
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const tenantId = process.env.TENANT_ID; // Use your tenant ID or set it in .env
@@ -252,13 +257,13 @@ const validateEntraRequest = (req, res, next) => {
 // Custom Authentication Extension for DeviceID validation
 const deviceIDValidationCAE = async (req, res) => {
   showDebugMsg('[CAE] Received AttributeCollectionSubmit request:', JSON.stringify(req.body, null, 2));
-  
+
   try {
     const eventData = req.body;
-    
+
     // Verify this is the correct event type
     if (eventData.type !== 'microsoft.graph.authenticationEvent.attributeCollectionSubmit') {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Unsupported event type',
         received: eventData.type
       });
@@ -277,14 +282,14 @@ const deviceIDValidationCAE = async (req, res) => {
     showDebugMsg('[CAE] Signup email:', signupEmail);
 
     if (!submittedDeviceID) {
-      return res.status(400).json({ 
-        error: 'DeviceID is required but not provided' 
+      return res.status(400).json({
+        error: 'DeviceID is required but not provided'
       });
     }
 
     // Get application token to search existing users
     const appToken = await getUserWriteToken();
-    
+
     // Search for existing users with the same deviceID
     const searchResponse = await axios.get(
       `https://graph.microsoft.com/v1.0/users?$filter=${extn_deviceID} eq '${submittedDeviceID}'&$select=userPrincipalName,displayName,${extn_deviceID}`,
@@ -302,7 +307,7 @@ const deviceIDValidationCAE = async (req, res) => {
     if (existingUsers.length === 0) {
       // DeviceID is unique, allow signup to continue normally
       showDebugMsg('[CAE] DeviceID is unique, allowing signup to continue');
-      
+
       return res.status(200).json({
         data: {
           "@odata.type": "microsoft.graph.onAttributeCollectionSubmitResponseData",
@@ -333,7 +338,7 @@ const deviceIDValidationCAE = async (req, res) => {
 
   } catch (error) {
     console.error('[CAE] Error processing DeviceID validation:', error.response?.data || error.message);
-    
+
     // On error, allow signup to continue (fail open)
     // You could change this to fail closed if preferred
     return res.status(200).json({
@@ -350,12 +355,12 @@ const deviceIDValidationCAE = async (req, res) => {
 // Enhanced version that collects additional user email for resolution
 const deviceIDValidationWithResolutionCAE = async (req, res) => {
   showDebugMsg('[CAE] Received AttributeCollectionSubmit request:', JSON.stringify(req.body, null, 2));
-  
+
   try {
     const eventData = req.body;
-    
+
     if (eventData.type !== 'microsoft.graph.authenticationEvent.attributeCollectionSubmit') {
-      return res.status(400).json({ 
+      return res.status(400).json({
         error: 'Unsupported event type',
         received: eventData.type
       });
@@ -376,7 +381,7 @@ const deviceIDValidationWithResolutionCAE = async (req, res) => {
 
     // Get application token to search existing users
     const appToken = await getUserWriteToken();
-    
+
     // Search for existing users with the same deviceID
     const searchResponse = await axios.get(
       `https://graph.microsoft.com/v1.0/users?$filter=${extn_deviceID} eq '${submittedDeviceID}'&$select=userPrincipalName,displayName,${extn_deviceID}`,
@@ -404,7 +409,7 @@ const deviceIDValidationWithResolutionCAE = async (req, res) => {
 
     // DeviceID already exists
     const existingUser = existingUsers[0];
-    
+
     if (!confirmationEmail) {
       // First time seeing duplicate - ask for confirmation email
       return res.status(200).json({
@@ -425,7 +430,7 @@ const deviceIDValidationWithResolutionCAE = async (req, res) => {
     if (confirmationEmail.toLowerCase() === existingUser.userPrincipalName.toLowerCase()) {
       // Email matches - allow signup (you might want additional verification here)
       showDebugMsg('[CAE] Confirmation email matches existing user, allowing signup');
-      
+
       return res.status(200).json({
         data: {
           "@odata.type": "microsoft.graph.onAttributeCollectionSubmitResponseData",
@@ -452,7 +457,7 @@ const deviceIDValidationWithResolutionCAE = async (req, res) => {
 
   } catch (error) {
     console.error('[CAE] Error processing DeviceID validation:', error.response?.data || error.message);
-    
+
     // On error, allow signup to continue (fail open)
     return res.status(200).json({
       data: {
@@ -608,23 +613,23 @@ app.get('/api/retrieveUserProfile', async (req, res) => {
     );
 
     const profile = profileResponse.data;
-    
+
     res.json({
       DisplayName: profile.displayName,
-      DeviceID: profile[extn_deviceID], 
+      DeviceID: profile[extn_deviceID],
       UPN: profile.userPrincipalName,
     });
-    
+
   } catch (error) {
     console.error('Error fetching fresh profile:', error.response?.data || error.message);
     console.log('Falling back to cached ID token for profile data.');
     // Fallback to cached ID token if Graph call fails
     const base64Payload = req.session.id_token.split('.')[1];
     const payload = JSON.parse(Buffer.from(base64Payload, 'base64').toString());
-    
+
     res.json({
       DisplayName: payload.name,
-      DeviceID: payload['userDeviceID'], 
+      DeviceID: payload['userDeviceID'],
       UPN: payload.preferred_username,
     });
   }
