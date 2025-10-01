@@ -7,7 +7,7 @@ on:
   workflow_dispatch:
 
 env:
-  AZURE_WEBAPP_NAME: My Garage Remote    # Set this to your Azure Web App name
+  AZURE_WEBAPP_NAME: grage    # Set this to your Azure Web App name
   AZURE_WEBAPP_PACKAGE_PATH: '.'      # Set this to the path to your web app project
   NODE_VERSION: '20.x'                # Set this to the node version to use
 
