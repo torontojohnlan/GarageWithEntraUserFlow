@@ -501,7 +501,7 @@ app.get('/redirect', async (req, res) => { // once Entra successfully authentica
   showDebugMsg('[/redirect] Received request with query:', req.query);
   showDebugMsg('[/redirect] request body: ', req);
   const code = req.query.code;
-  if (!code) return res.redirect('/');
+  if (!code) return res.redirect('/?error=auth_failed&message=Authentication failed. Please try again.');
   else {
     // showDebugMsg(`/redirect:exchange auth code for access token. Received authorization code: ${code}`)
   };

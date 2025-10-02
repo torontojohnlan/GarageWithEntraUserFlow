@@ -1,5 +1,5 @@
 const WebSocket = require("ws");
-const { isChannelMessage, isConnectMessage, isDataMessage } = require("grage-lib-jl/dist/cjs/lib.js");
+const { isChannelMessage, isConnectMessage, isDataMessage } = require("grage-lib-jl/lib"); //no longer need to specify exact path because in the library's package.json, it exports lib to the path for us
 const dotenv = require('dotenv');
 
 const lostConnectionIntervals = new Map();

@@ -1,11 +1,19 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Profile</title>
     <link rel="stylesheet" href="styles.css">
     <script>
+        if (
+            window.location.hostname === "localhost" ||
+            window.location.hostname === "127.0.0.1" ||
+            window.location.hostname === "::1" // IPv6 localhost
+        ) {
+            alert('showProfile page onloading')
+        }
         window.onload = async function () {
             try {
                 const res = await fetch('/api/retrieveUserProfile');
@@ -32,21 +40,22 @@
         };
     </script>
 </head>
+
 <body>
     <div id="content">
         <h1>👤 User Profile</h1>
         <div id="profileData">
             <ul>
                 <li>
-                    <strong>Display Name:</strong> 
+                    <strong>Display Name:</strong>
                     <span id="displayName">Loading...</span>
                 </li>
                 <li>
-                    <strong>Device ID:</strong> 
+                    <strong>Device ID:</strong>
                     <span id="deviceID">Loading...</span>
                 </li>
                 <li>
-                    <strong>UPN:</strong> 
+                    <strong>UPN:</strong>
                     <span id="upn">Loading...</span>
                 </li>
             </ul>
@@ -58,4 +67,5 @@
         </nav>
     </div>
 </body>
+
 </html>

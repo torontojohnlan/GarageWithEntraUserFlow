@@ -6,3 +6,11 @@ still need a CAE to valid deviceID that a user proposed
 1. working on CAE that checks existing deviceID - to do: will publish the app as it takes in gmail users. CAE will be for next version
 2. I am going to remove p parameter in /login route. Need to verify if correct user flow is used
 3. Need logout.html revised for people to log back in
+
+change project grage-lib-jl as per claude.ai
+update npm version
+publish
+update in this main app
+
+at beginning of /redirect we need to check Entra's repoonse in req.body to see if authentication was successful. /redirect should pass the error to /login page before redirect to /
+Ideally index.html should then give user a error message

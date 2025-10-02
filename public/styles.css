@@ -201,6 +201,37 @@ button:disabled {
     font-size: 0.9em;
 }
 
+/* Error Banner */
+.error-banner {
+    width: 100%;
+    background: linear-gradient(135deg, #dc3545 0%, #c82333 100%);
+    color: white;
+    padding: 20px;
+    margin-bottom: 20px;
+    border-radius: 12px;
+    box-shadow: 0 4px 15px rgba(220, 53, 69, 0.3);
+    display: none;
+    text-align: left;
+}
+
+.error-banner.show {
+    display: block;
+}
+
+.error-banner strong {
+    display: block;
+    font-size: 1.1em;
+    margin-bottom: 8px;
+    font-weight: 600;
+    color: white;
+}
+
+.error-banner .error {
+    display: block;
+    color: white;
+    opacity: 0.95;
+}
+
 /* Garage-specific elements */
 #onIndicator {
     color: #28a745;

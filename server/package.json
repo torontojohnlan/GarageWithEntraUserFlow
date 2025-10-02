@@ -10,7 +10,7 @@
     "express-session": "^1.18.1",
 		"ws": "^7.1.2",
     "fs": "^0.0.1-security",
-    "grage-lib-jl": "^1.2.12",
+    "grage-lib-jl": "^1.2.14",
     "jsonwebtoken": "^9.0.2",
     "uuid": "^11.1.0"
   },
