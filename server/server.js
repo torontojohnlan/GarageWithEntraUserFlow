@@ -12,36 +12,38 @@ const makeWss = require('./ws.js');
 const e = require('express');
 const wsHandler = makeWss();
 
+console.log('Server starting...');
+
 app.ws('/ws', wsHandler);
 app.use('/public', express.static('public')); //apps route is the client interface portion of this app
 
-const HOST = process.env.HOST || 'localhost';
+const HOST = process.env.WEBSITE_SITE_NAME || 'localhost';
 
-let debugMode, PORT, protocol;
+let localMode, PORT, protocol;
 let tokenSigningKey;
 if (HOST === 'localhost') {
   require('dotenv').config({ path: ".env.EntraParameters" });
   require('dotenv').config({ path: ".env.appParameters" });
-  debugMode = true;
+  localMode = true;
   protocol = 'http';
   PORT = 80;
 
   const fs = require('fs');
   tokenSigningKey = fs.readFileSync('./server/.env.tokenSigningKey.txt', 'utf8'); // for token signing
 
-  console.log('Debug mode is ON. Using .env.appParameters and .env.EntraParameters');
+  console.log('[Local mode is ON]. Using .env.appParameters and .env.EntraParameters');
 } else {
-  debugMode = false;
+  localMode = false;
   protocol = 'https';
   PORT = process.env.port;  //Azure app service will populate this var and the app must listen on this port
 
   tokenSigningKey = process.env.TOKEN_SIGNING_KEY.replace(/\\n/g, '\n'); // for token signing
 
-  console.log('Debug mode is OFF. Using environment variables directly.');
+  console.log('[Local mode is OFF]. Using environment variables directly.');
 }
 
 function showDebugMsg(...args) {
-  if (process.env.DEBUG_MODE === 'true' || debugMode)
+  if (process.env.DEBUG_MODE === 'true' || localMode)
     console.log(...args);
 }
 
