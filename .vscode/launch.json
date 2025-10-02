@@ -17,7 +17,8 @@
             ],
             "env":{
                 //"port":"3333", //port number defined here overrides what application reads via dotenv
-                "DEBUG_MODE": "true",
+                // be careful setting env vars here. It must match what is in .env files for dev or what's defined on Azure for PROD
+                "DEBUG": "true",
             },
             "type": "node"
         },

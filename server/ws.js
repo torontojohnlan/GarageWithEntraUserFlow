@@ -15,7 +15,7 @@ if (HOST === 'localhost') {
 }
 
 function showDebugMsg(...args) {
-    if (process.env.DEBUG_MODE === 'true' || localMode)
+    if (process.env.DEBUG === 'true' || localMode)
         console.log(...args);
 }
 showDebugMsg("[mySocketServer], local mode: ", localMode);
