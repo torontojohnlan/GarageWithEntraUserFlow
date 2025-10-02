@@ -4,23 +4,24 @@ const dotenv = require('dotenv');
 
 const lostConnectionIntervals = new Map();
 let doorOpenTimeout;
-const HOST = process.env.HOST || 'localhost';
+const HOST = process.env.WEBSITE_SITE_NAME || 'localhost';
 
-let debugMode;
+let localMode;
 if (HOST === 'localhost') {
-    debugMode = true;
+    localMode = true;
 }else{
-    debugMode = false;
+    localMode = false;
     
 }
 
 function showDebugMsg(...args) {
-    if (debugMode)
+    if (process.env.DEBUG_MODE === 'true' || localMode)
         console.log(...args);
 }
-showDebugMsg("[mySocketServer], DEBUG mode: ", debugMode);
+showDebugMsg("[mySocketServer], local mode: ", localMode);
+showDebugMsg("HOST detected: ", HOST);
 
-if (debugMode) {
+if (localMode) {
     // showDebugMsg("path for mailerConfig:",__dirname + '\\.env.mailerConfig' );
     dotenv.config({ path: __dirname + '\\.env.mailerConfig' });
     showDebugMsg("[ws.js][initializing] mailjet_Secrect: ", process.env.mailjet_Secrect);

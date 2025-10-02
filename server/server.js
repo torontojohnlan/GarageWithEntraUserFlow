@@ -1,3 +1,5 @@
+console.log('Server starting...');
+
 const express = require('express');
 const session = require('express-session');
 const axios = require('axios');
@@ -8,13 +10,14 @@ const { v4: uuidv4 } = require('uuid');
 
 const expressWs = require('express-ws');
 expressWs(app);
+
+console.log('Initializing websocket server.');
 const makeWss = require('./ws.js');
-const e = require('express');
 const wsHandler = makeWss();
-
-console.log('Server starting...');
-
 app.ws('/ws', wsHandler);
+console.log('Websocket server initialized.');
+
+
 app.use('/public', express.static('public')); //apps route is the client interface portion of this app
 
 const HOST = process.env.WEBSITE_SITE_NAME || 'localhost';
