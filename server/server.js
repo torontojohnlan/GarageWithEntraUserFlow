@@ -20,7 +20,7 @@ console.log('Websocket server initialized.');
 
 app.use('/public', express.static('public')); //apps route is the client interface portion of this app
 
-const HOST = process.env.WEBSITE_SITE_NAME || 'localhost';
+const HOST = process.env.WEBSITE_HOSTNAME || 'localhost';
 showDebugMsg("HOST detected: ", HOST);
 
 let localMode, PORT, protocol;
@@ -64,18 +64,19 @@ const REDIRECT_URI = `${protocol}://${URI}/redirect`;
 const API_SCOPE = `api://${URI}/${CLIENT_ID}/deviceID.clone`; // prerequisite: you need to create a scope in Entra ID for your API, e.g., api://<your-client-id>/deviceID
 const GARAGE_CERT_THUMBPRINT = process.env.GARAGE_CERT_THUMBPRINT; // Thumbprint of the certificate used to sign the JWT token
 
-showDebugMsg(`Using AUTHORITY: ${AUTHORITY}`);
-showDebugMsg(`Using REDIRECT_URI: ${REDIRECT_URI}`);
-showDebugMsg(`Using API_SCOPE: ${API_SCOPE}`);
+showDebugMsg(`[Main]Using AUTHORITY: ${AUTHORITY}`);
+showDebugMsg(`[Main]Using REDIRECT_URI: ${REDIRECT_URI}`);
+showDebugMsg(`[Main]Using API_SCOPE: ${API_SCOPE}`);
 
 app.use(express.json());
+showDebugMsg(`[Main]setting up [public] static path`);
 app.use(express.static('public'));
 app.use(session({
   secret: 'your_secret_v3ry_$7r0ng_secret', // Use a strong secret for session encryption
   resave: false,
   saveUninitialized: true
 }));
-
+showDebugMsg('[Main]Successfully finished setting up main web server');
 //#region Define custom auth extension API - not in use. This was for when I thought I need to clone deviceID during sign-up. 
 // candidate to be removed
 // --------------------------------
@@ -84,7 +85,7 @@ app.use(session({
 // The Auth Extension Handler has a helper function, which is defined as a middleware
 // Middleware to validate Entra request for extension (simplified)
 // const validateEntraRequest = (req, res, next) => {
-//   showDebugMsg('Validating Entra request with headers:', req.headers);
+//   showDebugMsg('[Main]Validating Entra request with headers:', req.headers);
 //   const authHeader = req.headers['authorization'];
 //   if (!authHeader || !authHeader.startsWith('Bearer ')) {
 //     console.error('[CAE] Missing or invalid Authorization header');
@@ -98,14 +99,14 @@ app.use(session({
 
 // ----------- if we are to use attributeCollectionSubmit event -----------
 // const attributeCollectionSubmitCAE = async (req, res) => { // CAE is shorthand for Custom Authentication Extension
-//   showDebugMsg('[CAE] Received request at /api/authExtension with body:', req.body);
+//   showDebugMsg('[Main][CAE] Received request at /api/authExtension with body:', req.body);
 //   try {
 //     const eventData = req.body;
-//     // showDebugMsg('[CAE] request body:', req.body);
+//     // showDebugMsg('[Main][CAE] request body:', req.body);
 //     // if (eventData.eventType === 'AttributeCollectionSubmit') { //original line given by grok
 //     if (eventData.type === 'microsoft.graph.authenticationEvent.attributeCollectionSubmit') {
 //       const userSignUpInfo = eventData.data.userSignUpInfo;
-//       showDebugMsg('[Auth Extension Handler][user signup info from req body]:', userSignUpInfo);
+//       showDebugMsg('[Main][Auth Extension Handler][user signup info from req body]:', userSignUpInfo);
 
 //       // Access the custom attribute collected during signup
 //       const deviceID = userSignUpInfo.attributes[extn_deviceID];
@@ -136,7 +137,7 @@ app.use(session({
 //             }
 //           }
 //         );
-//         showDebugMsg(`Cloned deviceID to directory extension for user ${userId}`);
+//         showDebugMsg(`[Main]Cloned deviceID to directory extension for user ${userId}`);
 //       } catch (err) {
 //         console.error('Failed to clone deviceID to directory extension:', err.response?.data || err.message);
 //       }
@@ -180,14 +181,14 @@ app.use(session({
 // ----------- if we are to use attributeCollectionSubmit event -----------
 
 // const tokenIssuanceCAE = async (req, res) => { // CAE is shorthand for Custom Authentication Extension
-//   showDebugMsg('[CAE] Received request at /api/authExtension with body:', req.body);
+//   showDebugMsg('[Main][CAE] Received request at /api/authExtension with body:', req.body);
 //   try {
 //     const eventData = req.body;
-//     // showDebugMsg('[CAE] request body:', req.body);
+//     // showDebugMsg('[Main][CAE] request body:', req.body);
 //     // if (eventData.eventType === 'AttributeCollectionSubmit') { //original line given by grok
 //     if (eventData.type === 'microsoft.graph.authenticationEvent.tokenIssuanceStart') {
 //       const user = eventData.data.authenticationContext.user;
-//       showDebugMsg('[Auth Extension Handler][user info from req body]:', user);
+//       showDebugMsg('[Main][Auth Extension Handler][user info from req body]:', user);
 //       const userId = user.id;
 
 //       // Store in session for app-specific use
@@ -210,7 +211,7 @@ app.use(session({
 //       //       }
 //       //     }
 //       //   );
-//       //   showDebugMsg(`Cloned deviceID to directory extension for user ${userId}`);
+//       //   showDebugMsg(`[Main]Cloned deviceID to directory extension for user ${userId}`);
 //       // } catch (err) {
 //       //   console.error('Failed to clone deviceID to directory extension:', err.response?.data || err.message);
 //       // }
@@ -249,239 +250,239 @@ app.use(session({
 // Add this to your server.js after your existing environment variables
 
 // Middleware to validate Entra request for extension
-const validateEntraRequest = (req, res, next) => {
-  showDebugMsg('[CAE] Validating Entra request with headers:', req.headers);
-  const authHeader = req.headers['authorization'];
-  if (!authHeader || !authHeader.startsWith('Bearer ')) {
-    console.error('[CAE] Missing or invalid Authorization header');
-    return res.status(401).json({ error: 'Invalid authorization' });
-  }
-  // In production: Validate JWT against Entra's JWKS endpoint
-  // For now, we'll trust the request is from Entra
-  next();
-};
+// const validateEntraRequest = (req, res, next) => {
+//   showDebugMsg('[Main][CAE] Validating Entra request with headers:', req.headers);
+//   const authHeader = req.headers['authorization'];
+//   if (!authHeader || !authHeader.startsWith('Bearer ')) {
+//     console.error('[CAE] Missing or invalid Authorization header');
+//     return res.status(401).json({ error: 'Invalid authorization' });
+//   }
+//   // In production: Validate JWT against Entra's JWKS endpoint
+//   // For now, we'll trust the request is from Entra
+//   next();
+// };
 
 // Custom Authentication Extension for DeviceID validation
-const deviceIDValidationCAE = async (req, res) => {
-  showDebugMsg('[CAE] Received AttributeCollectionSubmit request:', JSON.stringify(req.body, null, 2));
+// const deviceIDValidationCAE = async (req, res) => {
+//   showDebugMsg('[Main][CAE] Received AttributeCollectionSubmit request:', JSON.stringify(req.body, null, 2));
 
-  try {
-    const eventData = req.body;
+//   try {
+//     const eventData = req.body;
 
-    // Verify this is the correct event type
-    if (eventData.type !== 'microsoft.graph.authenticationEvent.attributeCollectionSubmit') {
-      return res.status(400).json({
-        error: 'Unsupported event type',
-        received: eventData.type
-      });
-    }
+//     // Verify this is the correct event type
+//     if (eventData.type !== 'microsoft.graph.authenticationEvent.attributeCollectionSubmit') {
+//       return res.status(400).json({
+//         error: 'Unsupported event type',
+//         received: eventData.type
+//       });
+//     }
 
-    const userSignUpInfo = eventData.data.userSignUpInfo;
-    showDebugMsg('[CAE] User signup info:', userSignUpInfo);
+//     const userSignUpInfo = eventData.data.userSignUpInfo;
+//     showDebugMsg('[Main][CAE] User signup info:', userSignUpInfo);
 
-    // Extract the submitted deviceID and other attributes
-    const submittedDeviceID = userSignUpInfo.attributes[extn_deviceID];
-    const displayName = userSignUpInfo.attributes.displayName;
-    const signupEmail = userSignUpInfo.identities[0]?.issuerAssignedId;
+//     // Extract the submitted deviceID and other attributes
+//     const submittedDeviceID = userSignUpInfo.attributes[extn_deviceID];
+//     const displayName = userSignUpInfo.attributes.displayName;
+//     const signupEmail = userSignUpInfo.identities[0]?.issuerAssignedId;
 
-    showDebugMsg('[CAE] Submitted deviceID:', submittedDeviceID);
-    showDebugMsg('[CAE] Display name:', displayName);
-    showDebugMsg('[CAE] Signup email:', signupEmail);
+//     showDebugMsg('[Main][CAE] Submitted deviceID:', submittedDeviceID);
+//     showDebugMsg('[Main][CAE] Display name:', displayName);
+//     showDebugMsg('[Main][CAE] Signup email:', signupEmail);
 
-    if (!submittedDeviceID) {
-      return res.status(400).json({
-        error: 'DeviceID is required but not provided'
-      });
-    }
+//     if (!submittedDeviceID) {
+//       return res.status(400).json({
+//         error: 'DeviceID is required but not provided'
+//       });
+//     }
 
-    // Get application token to search existing users
-    const appToken = await getUserWriteToken();
+//     // Get application token to search existing users
+//     const appToken = await getUserWriteToken();
 
-    // Search for existing users with the same deviceID
-    const searchResponse = await axios.get(
-      `https://graph.microsoft.com/v1.0/users?$filter=${extn_deviceID} eq '${submittedDeviceID}'&$select=userPrincipalName,displayName,${extn_deviceID}`,
-      {
-        headers: {
-          Authorization: `Bearer ${appToken}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+//     // Search for existing users with the same deviceID
+//     const searchResponse = await axios.get(
+//       `https://graph.microsoft.com/v1.0/users?$filter=${extn_deviceID} eq '${submittedDeviceID}'&$select=userPrincipalName,displayName,${extn_deviceID}`,
+//       {
+//         headers: {
+//           Authorization: `Bearer ${appToken}`,
+//           'Content-Type': 'application/json'
+//         }
+//       }
+//     );
 
-    const existingUsers = searchResponse.data.value || [];
-    showDebugMsg('[CAE] Found existing users with deviceID:', existingUsers.length);
+//     const existingUsers = searchResponse.data.value || [];
+//     showDebugMsg('[Main][CAE] Found existing users with deviceID:', existingUsers.length);
 
-    if (existingUsers.length === 0) {
-      // DeviceID is unique, allow signup to continue normally
-      showDebugMsg('[CAE] DeviceID is unique, allowing signup to continue');
+//     if (existingUsers.length === 0) {
+//       // DeviceID is unique, allow signup to continue normally
+//       showDebugMsg('[Main][CAE] DeviceID is unique, allowing signup to continue');
 
-      return res.status(200).json({
-        data: {
-          "@odata.type": "microsoft.graph.onAttributeCollectionSubmitResponseData",
-          actions: [{
-            "@odata.type": "microsoft.graph.attributeCollectionSubmit.continueWithDefaultBehavior"
-          }]
-        }
-      });
-    }
+//       return res.status(200).json({
+//         data: {
+//           "@odata.type": "microsoft.graph.onAttributeCollectionSubmitResponseData",
+//           actions: [{
+//             "@odata.type": "microsoft.graph.attributeCollectionSubmit.continueWithDefaultBehavior"
+//           }]
+//         }
+//       });
+//     }
 
-    // DeviceID already exists - block signup and show error
-    const existingUser = existingUsers[0];
-    showDebugMsg('[CAE] DeviceID already exists for user:', existingUser.userPrincipalName);
+//     // DeviceID already exists - block signup and show error
+//     const existingUser = existingUsers[0];
+//     showDebugMsg('[Main][CAE] DeviceID already exists for user:', existingUser.userPrincipalName);
 
-    // Return validation error to show to user
-    return res.status(200).json({
-      data: {
-        "@odata.type": "microsoft.graph.onAttributeCollectionSubmitResponseData",
-        actions: [{
-          "@odata.type": "microsoft.graph.attributeCollectionSubmit.showValidationError",
-          attributeErrors: [{
-            attribute: extn_deviceID,
-            message: `This Device ID is already registered to another user. If this is your device, please contact the existing user at: ${existingUser.userPrincipalName} to resolve this conflict.`
-          }]
-        }]
-      }
-    });
+//     // Return validation error to show to user
+//     return res.status(200).json({
+//       data: {
+//         "@odata.type": "microsoft.graph.onAttributeCollectionSubmitResponseData",
+//         actions: [{
+//           "@odata.type": "microsoft.graph.attributeCollectionSubmit.showValidationError",
+//           attributeErrors: [{
+//             attribute: extn_deviceID,
+//             message: `This Device ID is already registered to another user. If this is your device, please contact the existing user at: ${existingUser.userPrincipalName} to resolve this conflict.`
+//           }]
+//         }]
+//       }
+//     });
 
-  } catch (error) {
-    console.error('[CAE] Error processing DeviceID validation:', error.response?.data || error.message);
+//   } catch (error) {
+//     console.error('[CAE] Error processing DeviceID validation:', error.response?.data || error.message);
 
-    // On error, allow signup to continue (fail open)
-    // You could change this to fail closed if preferred
-    return res.status(200).json({
-      data: {
-        "@odata.type": "microsoft.graph.onAttributeCollectionSubmitResponseData",
-        actions: [{
-          "@odata.type": "microsoft.graph.attributeCollectionSubmit.continueWithDefaultBehavior"
-        }]
-      }
-    });
-  }
-};
+//     // On error, allow signup to continue (fail open)
+//     // You could change this to fail closed if preferred
+//     return res.status(200).json({
+//       data: {
+//         "@odata.type": "microsoft.graph.onAttributeCollectionSubmitResponseData",
+//         actions: [{
+//           "@odata.type": "microsoft.graph.attributeCollectionSubmit.continueWithDefaultBehavior"
+//         }]
+//       }
+//     });
+//   }
+// };
 
 // Enhanced version that collects additional user email for resolution
-const deviceIDValidationWithResolutionCAE = async (req, res) => {
-  showDebugMsg('[CAE] Received AttributeCollectionSubmit request:', JSON.stringify(req.body, null, 2));
+// const deviceIDValidationWithResolutionCAE = async (req, res) => {
+//   showDebugMsg('[Main][CAE] Received AttributeCollectionSubmit request:', JSON.stringify(req.body, null, 2));
 
-  try {
-    const eventData = req.body;
+//   try {
+//     const eventData = req.body;
 
-    if (eventData.type !== 'microsoft.graph.authenticationEvent.attributeCollectionSubmit') {
-      return res.status(400).json({
-        error: 'Unsupported event type',
-        received: eventData.type
-      });
-    }
+//     if (eventData.type !== 'microsoft.graph.authenticationEvent.attributeCollectionSubmit') {
+//       return res.status(400).json({
+//         error: 'Unsupported event type',
+//         received: eventData.type
+//       });
+//     }
 
-    const userSignUpInfo = eventData.data.userSignUpInfo;
-    const submittedDeviceID = userSignUpInfo.attributes[extn_deviceID];
-    const confirmationEmail = userSignUpInfo.attributes['extension_confirmationEmail']; // Additional field you'd add
-    const displayName = userSignUpInfo.attributes.displayName;
-    const signupEmail = userSignUpInfo.identities[0]?.issuerAssignedId;
+//     const userSignUpInfo = eventData.data.userSignUpInfo;
+//     const submittedDeviceID = userSignUpInfo.attributes[extn_deviceID];
+//     const confirmationEmail = userSignUpInfo.attributes['extension_confirmationEmail']; // Additional field you'd add
+//     const displayName = userSignUpInfo.attributes.displayName;
+//     const signupEmail = userSignUpInfo.identities[0]?.issuerAssignedId;
 
-    showDebugMsg('[CAE] Submitted deviceID:', submittedDeviceID);
-    showDebugMsg('[CAE] Confirmation email:', confirmationEmail);
+//     showDebugMsg('[Main][CAE] Submitted deviceID:', submittedDeviceID);
+//     showDebugMsg('[Main][CAE] Confirmation email:', confirmationEmail);
 
-    if (!submittedDeviceID) {
-      return res.status(400).json({ error: 'DeviceID is required but not provided' });
-    }
+//     if (!submittedDeviceID) {
+//       return res.status(400).json({ error: 'DeviceID is required but not provided' });
+//     }
 
-    // Get application token to search existing users
-    const appToken = await getUserWriteToken();
+//     // Get application token to search existing users
+//     const appToken = await getUserWriteToken();
 
-    // Search for existing users with the same deviceID
-    const searchResponse = await axios.get(
-      `https://graph.microsoft.com/v1.0/users?$filter=${extn_deviceID} eq '${submittedDeviceID}'&$select=userPrincipalName,displayName,${extn_deviceID}`,
-      {
-        headers: {
-          Authorization: `Bearer ${appToken}`,
-          'Content-Type': 'application/json'
-        }
-      }
-    );
+//     // Search for existing users with the same deviceID
+//     const searchResponse = await axios.get(
+//       `https://graph.microsoft.com/v1.0/users?$filter=${extn_deviceID} eq '${submittedDeviceID}'&$select=userPrincipalName,displayName,${extn_deviceID}`,
+//       {
+//         headers: {
+//           Authorization: `Bearer ${appToken}`,
+//           'Content-Type': 'application/json'
+//         }
+//       }
+//     );
 
-    const existingUsers = searchResponse.data.value || [];
+//     const existingUsers = searchResponse.data.value || [];
 
-    if (existingUsers.length === 0) {
-      // DeviceID is unique, allow signup to continue
-      return res.status(200).json({
-        data: {
-          "@odata.type": "microsoft.graph.onAttributeCollectionSubmitResponseData",
-          actions: [{
-            "@odata.type": "microsoft.graph.attributeCollectionSubmit.continueWithDefaultBehavior"
-          }]
-        }
-      });
-    }
+//     if (existingUsers.length === 0) {
+//       // DeviceID is unique, allow signup to continue
+//       return res.status(200).json({
+//         data: {
+//           "@odata.type": "microsoft.graph.onAttributeCollectionSubmitResponseData",
+//           actions: [{
+//             "@odata.type": "microsoft.graph.attributeCollectionSubmit.continueWithDefaultBehavior"
+//           }]
+//         }
+//       });
+//     }
 
-    // DeviceID already exists
-    const existingUser = existingUsers[0];
+//     // DeviceID already exists
+//     const existingUser = existingUsers[0];
 
-    if (!confirmationEmail) {
-      // First time seeing duplicate - ask for confirmation email
-      return res.status(200).json({
-        data: {
-          "@odata.type": "microsoft.graph.onAttributeCollectionSubmitResponseData",
-          actions: [{
-            "@odata.type": "microsoft.graph.attributeCollectionSubmit.showValidationError",
-            attributeErrors: [{
-              attribute: extn_deviceID,
-              message: `This Device ID is already registered. If this is your device, please provide the email of the existing user below to confirm.`
-            }]
-          }]
-        }
-      });
-    }
+//     if (!confirmationEmail) {
+//       // First time seeing duplicate - ask for confirmation email
+//       return res.status(200).json({
+//         data: {
+//           "@odata.type": "microsoft.graph.onAttributeCollectionSubmitResponseData",
+//           actions: [{
+//             "@odata.type": "microsoft.graph.attributeCollectionSubmit.showValidationError",
+//             attributeErrors: [{
+//               attribute: extn_deviceID,
+//               message: `This Device ID is already registered. If this is your device, please provide the email of the existing user below to confirm.`
+//             }]
+//           }]
+//         }
+//       });
+//     }
 
-    // Confirmation email provided - validate it matches existing user
-    if (confirmationEmail.toLowerCase() === existingUser.userPrincipalName.toLowerCase()) {
-      // Email matches - allow signup (you might want additional verification here)
-      showDebugMsg('[CAE] Confirmation email matches existing user, allowing signup');
+//     // Confirmation email provided - validate it matches existing user
+//     if (confirmationEmail.toLowerCase() === existingUser.userPrincipalName.toLowerCase()) {
+//       // Email matches - allow signup (you might want additional verification here)
+//       showDebugMsg('[Main][CAE] Confirmation email matches existing user, allowing signup');
 
-      return res.status(200).json({
-        data: {
-          "@odata.type": "microsoft.graph.onAttributeCollectionSubmitResponseData",
-          actions: [{
-            "@odata.type": "microsoft.graph.attributeCollectionSubmit.continueWithDefaultBehavior"
-          }]
-        }
-      });
-    } else {
-      // Email doesn't match
-      return res.status(200).json({
-        data: {
-          "@odata.type": "microsoft.graph.onAttributeCollectionSubmitResponseData",
-          actions: [{
-            "@odata.type": "microsoft.graph.attributeCollectionSubmit.showValidationError",
-            attributeErrors: [{
-              attribute: 'extension_confirmationEmail',
-              message: `The email you provided does not match our records for this Device ID. Please contact support if you believe this is your device.`
-            }]
-          }]
-        }
-      });
-    }
+//       return res.status(200).json({
+//         data: {
+//           "@odata.type": "microsoft.graph.onAttributeCollectionSubmitResponseData",
+//           actions: [{
+//             "@odata.type": "microsoft.graph.attributeCollectionSubmit.continueWithDefaultBehavior"
+//           }]
+//         }
+//       });
+//     } else {
+//       // Email doesn't match
+//       return res.status(200).json({
+//         data: {
+//           "@odata.type": "microsoft.graph.onAttributeCollectionSubmitResponseData",
+//           actions: [{
+//             "@odata.type": "microsoft.graph.attributeCollectionSubmit.showValidationError",
+//             attributeErrors: [{
+//               attribute: 'extension_confirmationEmail',
+//               message: `The email you provided does not match our records for this Device ID. Please contact support if you believe this is your device.`
+//             }]
+//           }]
+//         }
+//       });
+//     }
 
-  } catch (error) {
-    console.error('[CAE] Error processing DeviceID validation:', error.response?.data || error.message);
+//   } catch (error) {
+//     console.error('[CAE] Error processing DeviceID validation:', error.response?.data || error.message);
 
-    // On error, allow signup to continue (fail open)
-    return res.status(200).json({
-      data: {
-        "@odata.type": "microsoft.graph.onAttributeCollectionSubmitResponseData",
-        actions: [{
-          "@odata.type": "microsoft.graph.attributeCollectionSubmit.continueWithDefaultBehavior"
-        }]
-      }
-    });
-  }
-};
+//     // On error, allow signup to continue (fail open)
+//     return res.status(200).json({
+//       data: {
+//         "@odata.type": "microsoft.graph.onAttributeCollectionSubmitResponseData",
+//         actions: [{
+//           "@odata.type": "microsoft.graph.attributeCollectionSubmit.continueWithDefaultBehavior"
+//         }]
+//       }
+//     });
+//   }
+// };
 
 // Register the CAE endpoint
-app.post('/api/cae/deviceid-validation', validateEntraRequest, deviceIDValidationCAE);
+// app.post('/api/cae/deviceid-validation', validateEntraRequest, deviceIDValidationCAE);
 
 // Alternative endpoint with email confirmation workflow
-app.post('/api/cae/deviceid-validation-with-resolution', validateEntraRequest, deviceIDValidationWithResolutionCAE);
+// app.post('/api/cae/deviceid-validation-with-resolution', validateEntraRequest, deviceIDValidationWithResolutionCAE);
 
 // The /login route redirects the user to the Entra authorization endpoint to get an authorization code.
 // The /redirect route receives the code as a query parameter after user authentication.
@@ -502,12 +503,12 @@ app.get('/login', (req, res) => {
 });
 
 app.get('/redirect', async (req, res) => { // once Entra successfully authenticates the user, it will redirect to this endpoint with a code
-  showDebugMsg('[/redirect] Received request with query:', req.query);
-  showDebugMsg('[/redirect] request body: ', req);
+  showDebugMsg('[Main][/redirect] Received request with query:', req.query);
+  showDebugMsg('[Main][/redirect] request body: ', req);
   const code = req.query.code;
   if (!code) return res.redirect('/?error=auth_failed&message=Authentication failed. Please try again.');
   else {
-    // showDebugMsg(`/redirect:exchange auth code for access token. Received authorization code: ${code}`)
+    // showDebugMsg(`[Main]/redirect:exchange auth code for access token. Received authorization code: ${code}`)
   };
 
   const now = Math.floor(Date.now() / 1000); // Current time in seconds since epoch
@@ -532,7 +533,7 @@ app.get('/redirect', async (req, res) => { // once Entra successfully authentica
     }
   );
 
-  // showDebugMsg('JWT Assertion:', assertion);
+  // showDebugMsg('[Main]JWT Assertion:', assertion);
   // Exchange code for tokens
   try {
     // USING CLIENT SECRET
@@ -566,8 +567,8 @@ app.get('/redirect', async (req, res) => { // once Entra successfully authentica
 
     req.session.id_token = tokenRes.data.id_token;
     req.session.access_token = tokenRes.data.access_token;
-    // showDebugMsg('[/redirect] Token response data:', tokenRes.data);
-    showDebugMsg('[/redirect] ID Token:', req.session.id_token);
+    // showDebugMsg('[Main][/redirect] Token response data:', tokenRes.data);
+    showDebugMsg('[Main][/redirect] ID Token:', req.session.id_token);
     showDebugMsg("[/redirect] redirecting to /showProfile.html");
     res.redirect('/public/showProfile.html');
   } catch (err) {
@@ -583,17 +584,17 @@ app.get('/redirect', async (req, res) => { // once Entra successfully authentica
 //   // Decode ID token to get claims (including custom attributes)
 //   const base64Payload = req.session.id_token.split('.')[1];
 //   const payload = JSON.parse(Buffer.from(base64Payload, 'base64').toString());
-//   showDebugMsg('Decoded ID Token Payload:', payload);
-//   showDebugMsg(`ID Token.deviceID: ${payload['userDeviceID']}`);
-//   // showDebugMsg(`accessToken.extension_xxx_deviceID: ${payload[`extension_${EntraExtensionAppID}_deviceID`]}`);
+//   showDebugMsg('[Main]Decoded ID Token Payload:', payload);
+//   showDebugMsg(`[Main]ID Token.deviceID: ${payload['userDeviceID']}`);
+//   // showDebugMsg(`[Main]accessToken.extension_xxx_deviceID: ${payload[`extension_${EntraExtensionAppID}_deviceID`]}`);
 
 //   // Decode Access token
 //   const base64AccessPayload = req.session.access_token.split('.')[1];
 //   const accessPayload = JSON.parse(Buffer.from(base64AccessPayload, 'base64').toString());
 
-//   showDebugMsg('Decoded Access Token Payload:', accessPayload); // deviceID is in ID token not in access token
-//   // showDebugMsg(`accessToken.deviceID: ${accessPayload['extn.deviceID']}`); 
-//   // showDebugMsg(`accessToken.extension_xxx_deviceID: ${accessPayload[`extension_${EntraExtensionAppID}_deviceID`]}`);
+//   showDebugMsg('[Main]Decoded Access Token Payload:', accessPayload); // deviceID is in ID token not in access token
+//   // showDebugMsg(`[Main]accessToken.deviceID: ${accessPayload['extn.deviceID']}`); 
+//   // showDebugMsg(`[Main]accessToken.extension_xxx_deviceID: ${accessPayload[`extension_${EntraExtensionAppID}_deviceID`]}`);
 
 //   res.json({
 //     DisplayName: payload.name,  // this is displayName in Entra
@@ -672,7 +673,7 @@ async function getUserWriteToken() {
     })
   );
 
-  showDebugMsg('[getUserReadWriteToken][helper function] Token return:', tokenResponse.data.access_token);
+  showDebugMsg('[Main][getUserReadWriteToken][helper function] Token return:', tokenResponse.data.access_token);
   return tokenResponse.data.access_token;
 }
 
@@ -689,9 +690,9 @@ app.post('/api/editProfile', async (req, res) => {
     return res.status(400).json({ error: 'Device ID, and UPN are required' });
   }
 
-  showDebugMsg('[/api/editProfile] Updating profile for UPN:', upn);
-  showDebugMsg('[/api/editProfile] New displayName:', displayName);
-  showDebugMsg('[/api/editProfile] New deviceID:', deviceID);
+  showDebugMsg('[Main][/api/editProfile] Updating profile for UPN:', upn);
+  showDebugMsg('[Main][/api/editProfile] New displayName:', displayName);
+  showDebugMsg('[Main][/api/editProfile] New deviceID:', deviceID);
 
   try {
     //region get userID by upn. 
@@ -709,7 +710,7 @@ app.post('/api/editProfile', async (req, res) => {
           }
         }
       );
-      showDebugMsg('[/api/editProfile][read user] User id found', userSearchResponse.data.id);
+      showDebugMsg('[Main][/api/editProfile][read user] User id found', userSearchResponse.data.id);
     } catch {
       console.error('[/api/editProfile][read user] Error reading user profile:', error.response?.data || error.message);
       throw error;
@@ -721,7 +722,7 @@ app.post('/api/editProfile', async (req, res) => {
     // }
 
     const userId = userSearchResponse.data.id;
-    showDebugMsg('[/api/editProfile] Found user ID:', userId);
+    showDebugMsg('[Main][/api/editProfile] Found user ID:', userId);
     //endregion get userID by upn. 
 
     // Prepare the update payload
@@ -729,10 +730,10 @@ app.post('/api/editProfile', async (req, res) => {
       displayName: displayName,
       [`${extn_deviceID}`]: deviceID
     };
-    showDebugMsg('[/api/editProfile] verifying extn_deviceID:', extn_deviceID);
-    showDebugMsg('[/api/editProfile] verifying deviceID:', deviceID);
-    showDebugMsg('[/api/editProfile] verifying displayName:', displayName);
-    showDebugMsg('[/api/editProfile] Update payload:', updatePayload);
+    showDebugMsg('[Main][/api/editProfile] verifying extn_deviceID:', extn_deviceID);
+    showDebugMsg('[Main][/api/editProfile] verifying deviceID:', deviceID);
+    showDebugMsg('[Main][/api/editProfile] verifying displayName:', displayName);
+    showDebugMsg('[Main][/api/editProfile] Update payload:', updatePayload);
 
     // Update the user's profile using Microsoft Graph API
     const appToken = await getUserWriteToken(); // get app token with User.ReadWrite.All permission
@@ -748,7 +749,7 @@ app.post('/api/editProfile', async (req, res) => {
       }
     );
 
-    showDebugMsg('[/api/editProfile] Profile updated successfully for user:', upn);
+    showDebugMsg('[Main][/api/editProfile] Profile updated successfully for user:', upn);
 
     // Update the session tokens if needed (optional - tokens will be refreshed on next login)
     // Note: The changes won't be reflected in current session tokens until next login
@@ -777,9 +778,9 @@ app.post('/api/editProfile', async (req, res) => {
   }
 });
 
-
-app.listen(PORT, HOST, () => {
-  showDebugMsg(`Server running on ${protocol}://${HOST}:${PORT}`);
+showDebugMsg('[Main]Finally start the web server')
+app.listen(PORT, () => {  // Must not use HOST param here as this should be left to Azure to decide.
+  showDebugMsg(`[Main]Server running on ${protocol}://${HOST}:${PORT}`);
 })
 
 // Below 7 lines are for HTTPS server setup, in case you want to run with HTTPS locally
@@ -790,5 +791,5 @@ app.listen(PORT, HOST, () => {
 // };
 // const httpsServer = https.createServer(options, app);
 
-// httpsServer.listen(443, HOST, () => showDebugMsg('Server running on https://localhost:443'));
+// httpsServer.listen(443, HOST, () => showDebugMsg('[Main]Server running on https://localhost:443'));
 

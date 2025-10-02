@@ -4,8 +4,7 @@ const dotenv = require('dotenv');
 
 const lostConnectionIntervals = new Map();
 let doorOpenTimeout;
-const HOST = process.env.WEBSITE_SITE_NAME || 'localhost';
-
+const HOST = process.env.WEBSITE_HOSTNAME || 'localhost';
 let localMode;
 if (HOST === 'localhost') {
     localMode = true;
@@ -15,9 +14,10 @@ if (HOST === 'localhost') {
 }
 
 function showDebugMsg(...args) {
-    if (process.env.DEBUG === 'true' || localMode)
-        console.log(...args);
+  if (process.env.DEBUG === 'true' || localMode)
+    console.log(...args);
 }
+
 showDebugMsg("[mySocketServer], local mode: ", localMode);
 showDebugMsg("HOST detected: ", HOST);
 
