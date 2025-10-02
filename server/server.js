@@ -31,6 +31,9 @@ if (HOST === 'localhost') {
   PORT = process.env.port;  //Azure app service will populate this var and the app must listen on this port
   console.log('Debug mode is OFF. Using environment variables directly.');
 }
+
+debugMode = process.env.DEBUG_MODE === 'true' || debugMode; // override if env variable is set
+
 function showDebugMsg(...args) {
   if (debugMode)
     console.log(...args);
