@@ -18,35 +18,33 @@ app.use('/public', express.static('public')); //apps route is the client interfa
 const HOST = process.env.HOST || 'localhost';
 
 let debugMode, PORT, protocol;
+let tokenSigningKey;
 if (HOST === 'localhost') {
   require('dotenv').config({ path: ".env.EntraParameters" });
   require('dotenv').config({ path: ".env.appParameters" });
   debugMode = true;
   protocol = 'http';
   PORT = 80;
+
+  const fs = require('fs');
+  tokenSigningKey = fs.readFileSync('./server/.env.tokenSigningKey.txt', 'utf8'); // for token signing
+
   console.log('Debug mode is ON. Using .env.appParameters and .env.EntraParameters');
 } else {
   debugMode = false;
   protocol = 'https';
   PORT = process.env.port;  //Azure app service will populate this var and the app must listen on this port
+
+  tokenSigningKey = process.env.TOKEN_SIGNING_KEY.replace(/\\n/g, '\n'); // for token signing
+
   console.log('Debug mode is OFF. Using environment variables directly.');
 }
 
-debugMode = process.env.DEBUG_MODE === 'true' || debugMode; // override if env variable is set
-
 function showDebugMsg(...args) {
-  if (debugMode)
+  if (process.env.DEBUG_MODE === 'true' || debugMode)
     console.log(...args);
 }
 
-let tokenSigningKey;
-if (debugMode) {
-  const fs = require('fs');
-  tokenSigningKey = fs.readFileSync('./server/.env.tokenSigningKey.txt', 'utf8'); // for token signing
-  // showDebugMsg('Loading private key from garage.pem:', tokenSigningKey ? tokenSigningKey : 'Failed to load key');
-} else {
-  tokenSigningKey = process.env.TOKEN_SIGNING_KEY.replace(/\\n/g, '\n'); // for token signing
-}
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const tenantId = process.env.TENANT_ID; // Use your tenant ID or set it in .env
