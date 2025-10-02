@@ -39,7 +39,7 @@ if (HOST === 'localhost') {
 } else {
   localMode = false;
   protocol = 'https';
-  PORT = process.env.port;  //Azure app service will populate this var and the app must listen on this port
+  PORT = process.env.PORT;  //Azure app service will populate this var and the app must listen on this port
 
   tokenSigningKey = process.env.TOKEN_SIGNING_KEY.replace(/\\n/g, '\n'); // for token signing
 
