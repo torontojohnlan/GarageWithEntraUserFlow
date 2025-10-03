@@ -33,7 +33,7 @@ if (HOST === 'localhost') {
   PORT = 80;
 
   const fs = require('fs');
-  tokenSigningKey = fs.readFileSync('./server/.env.tokenSigningKey.txt', 'utf8'); // for token signing
+  tokenSigningKey = fs.readFileSync('./server/.env.tokenSigningPrivateKey.pem', 'utf8'); // for token signing
 
   console.log('[Local mode is ON]. Using .env.appParameters and .env.EntraParameters');
 } else {
@@ -791,5 +791,5 @@ app.listen(PORT, () => {  // Must not use HOST param here as this should be left
 // };
 // const httpsServer = https.createServer(options, app);
 
-// httpsServer.listen(443, HOST, () => showDebugMsg('[Main]Server running on https://localhost:443'));
+// httpsServer.listen(443, () => showDebugMsg('[Main]Server running on https://localhost:443'));
 
