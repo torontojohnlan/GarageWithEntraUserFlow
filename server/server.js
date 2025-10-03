@@ -568,8 +568,8 @@ app.get('/redirect', async (req, res) => { // once Entra successfully authentica
     req.session.access_token = tokenRes.data.access_token;
     // showDebugMsg('[Main][/redirect] Token response data:', tokenRes.data);
     showDebugMsg('[Main][/redirect] ID Token:', req.session.id_token);
-    showDebugMsg("[/redirect] redirecting to /showProfile.html");
-    res.redirect('/public/showProfile.html');
+    showDebugMsg("[/redirect] redirecting to /garage.html");
+    res.redirect('/public/garage.html');
   } catch (err) {
     console.error('[/redirect] Token exchange error:', err.response?.data || err.message);
     res.status(500).send('Token exchange failed');
@@ -776,6 +776,34 @@ app.post('/api/editProfile', async (req, res) => {
     }
   }
 });
+
+// Logout endpoint
+app.post('/api/logout', (req, res) => {
+  showDebugMsg('[Main][/api/logout] Logout requested');
+  
+  // Get the post logout redirect URI
+  const postLogoutRedirectUri = `${protocol}://${URI}/public/logout.html`;
+  
+  // Clear the session
+  req.session.destroy((err) => {
+    if (err) {
+      console.error('[/api/logout] Error destroying session:', err);
+      return res.status(500).json({ error: 'Failed to logout' });
+    }
+    
+    // Construct the Entra logout URL
+    // This will sign the user out of Entra and redirect to logout.html
+    const logoutUrl = `${AUTHORITY}/oauth2/v2.0/logout?post_logout_redirect_uri=${encodeURIComponent(postLogoutRedirectUri)}`;
+    
+    showDebugMsg('[Main][/api/logout] Session destroyed, redirecting to:', logoutUrl);
+    
+    res.json({ 
+      success: true, 
+      logoutUrl: logoutUrl 
+    });
+  });
+});
+
 
 showDebugMsg('[Main]Finally start the web server')
 app.listen(PORT, () => {  // Must not use HOST param here as this should be left to Azure to decide.

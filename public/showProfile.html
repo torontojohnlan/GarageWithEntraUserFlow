@@ -28,7 +28,7 @@
                 }
                 document.getElementById('displayName').innerText = user.DisplayName || 'N/A';
                 document.getElementById('deviceID').innerText = user.DeviceID || 'N/A';
-                document.getElementById('upn').innerText = user.UPN || 'N/A';
+                // document.getElementById('upn').innerText = user.UPN || 'N/A';
             } catch (err) {
                 document.getElementById('content').innerHTML = `
                     <h1>Error</h1>
@@ -54,16 +54,16 @@
                     <strong>Device ID:</strong>
                     <span id="deviceID">Loading...</span>
                 </li>
-                <li>
+                <!-- <li>
                     <strong>UPN:</strong>
                     <span id="upn">Loading...</span>
-                </li>
+                </li> -->
             </ul>
         </div>
         <nav>
             <a href="/public/editProfile.html" class="btn btn-primary">Edit Profile</a>
             <a href="/public/garage.html" class="btn btn-success">Garage Control</a>
-            <a href="/public/logout.html" class="btn btn-secondary">Logout</a>
+            <a href="/public/logout.html" class="btn btn-secondary">🔚 Logout</a>
         </nav>
     </div>
 </body>

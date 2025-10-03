@@ -1,38 +1,71 @@
 <!DOCTYPE html>
 <html lang="en">
+
 <head>
     <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>User Profile</title>
+    <link rel="stylesheet" href="styles.css">
     <script>
+        if (
+            window.location.hostname === "localhost" ||
+            window.location.hostname === "127.0.0.1" ||
+            window.location.hostname === "::1" // IPv6 localhost
+        ) {
+            alert('showProfile page onloading')
+        }
         window.onload = async function () {
             try {
                 const res = await fetch('/api/retrieveUserProfile');
                 const user = await res.json();
                 if (user.error) {
-                    document.body.innerHTML = `<h1>Error</h1><p>${user.error}</p>`;
+                    document.getElementById('content').innerHTML = `
+                        <h1>Error</h1>
+                        <p class="error">${user.error}</p>
+                        <button class="btn btn-primary" onclick="window.location.href='/login'">Back to Login</button>
+                    `;
                     return;
                 }
                 document.getElementById('displayName').innerText = user.DisplayName || 'N/A';
                 document.getElementById('deviceID').innerText = user.DeviceID || 'N/A';
-                document.getElementById('upn').innerText = user.UPN || 'N/A';
+                // document.getElementById('upn').innerText = user.UPN || 'N/A';
             } catch (err) {
-                document.body.innerHTML = `<h1>Error</h1><p>Could not load user profile.</p>`;
+                document.getElementById('content').innerHTML = `
+                    <h1>Error</h1>
+                    <p class="error">Could not load user profile.</p>
+                    <button class="btn btn-primary" onclick="window.location.href='/login'">Back to Login</button>
+                `;
                 console.error(err);
             }
         };
     </script>
 </head>
+
 <body>
-    <h1>User Profile</h1>
-    <ul>
-        <li><strong>Display Name:</strong> <span id="displayName"></span></li>
-        <li><strong>Device ID:</strong> <span id="deviceID"></span></li>
-        <li><strong>UPN:</strong> <span id="upn"></span></li>
-    </ul>
-    <nav>
-        <a href="/public/editProfile.html">Edit Profile</a> |
-        <a href="/public/garage.html">Garage Control</a>
-        <a href="/public/logout.html">Logout</a> |
-    </nav>
+    <div id="content">
+        <h1>👤 User Profile</h1>
+        <div id="profileData">
+            <ul>
+                <li>
+                    <strong>Display Name:</strong>
+                    <span id="displayName">Loading...</span>
+                </li>
+                <li>
+                    <strong>Device ID:</strong>
+                    <span id="deviceID">Loading...</span>
+                </li>
+                <!-- <li>
+                    <strong>UPN:</strong>
+                    <span id="upn">Loading...</span>
+                </li> -->
+            </ul>
+        </div>
+        <nav>
+            <a href="/public/editProfile.html" class="btn btn-primary">Edit Profile</a>
+            <a href="/public/garage.html" class="btn btn-success">Garage Control</a>
+            <a href="/public/logout.html" class="btn btn-secondary">🔚 Logout</a>
+        </nav>
+    </div>
 </body>
+
 </html>
