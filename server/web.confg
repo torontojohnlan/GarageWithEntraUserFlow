@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<configuration>
+  <system.webServer>
+    <httpErrors errorMode="Custom" existingResponse="Replace">
+      <remove statusCode="502" subStatusCode="-1" />
+      <remove statusCode="503" subStatusCode="-1" />
+      <error statusCode="502" path="/public/offline.html" responseMode="File" />
+      <error statusCode="503" path="/public/offline.html" responseMode="File" />
+    </httpErrors>
+  </system.webServer>
+</configuration>
