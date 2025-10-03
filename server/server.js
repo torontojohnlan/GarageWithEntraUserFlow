@@ -21,7 +21,6 @@ console.log('Websocket server initialized.');
 app.use('/public', express.static('public')); //apps route is the client interface portion of this app
 
 const HOST = process.env.WEBSITE_HOSTNAME || 'localhost';
-showDebugMsg("HOST detected: ", HOST);
 
 let localMode, PORT, protocol;
 let tokenSigningKey;
