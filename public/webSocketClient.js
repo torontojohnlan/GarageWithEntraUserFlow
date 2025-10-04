@@ -56,12 +56,6 @@ window.onload = async function () {
     const indicator = document.querySelector('#onIndicator');
     const lastUpdate = document.querySelector('#lastUpdate');
     const toggle = document.querySelector('#toggle');
-    const disconnect = document.querySelector('#disconnect');
-    disconnect.onclick = function handleDisconnect() {
-        delete data.currentID;
-        grage.saveData(data);
-        window.location.href = 'index.html';
-    };
     let lastUpdateTime;
     setInterval(function showLastUpdate() {
         if (lastUpdateTime)

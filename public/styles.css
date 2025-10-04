@@ -94,10 +94,10 @@ h2 {
 .profile-menu {
     position: fixed;
     top: 0;
-    right: -400px;
+    right: -100%;
     width: 350px;
     max-width: 90%;
-    height: 100%;
+    height: 100vh;
     background: white;
     box-shadow: -5px 0 25px rgba(0, 0, 0, 0.3);
     z-index: 999;
@@ -272,6 +272,7 @@ button, .btn {
     transition: all 0.3s;
     text-decoration: none;
     display: inline-block;
+    box-sizing: border-box;
 }
 
 .btn-primary, button[type="submit"] {
@@ -449,6 +450,7 @@ button:disabled {
     .profile-menu {
         width: 100%;
         max-width: 100%;
+        right: -100%;
     }
 }
 

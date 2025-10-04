@@ -37,7 +37,6 @@
         </form>
     </div>
 
-    <a id="disconnect" href="/public/showProfile.html">← Back to Profile</a>
 
     <script>
         let originalProfile = {};
@@ -105,7 +104,7 @@
                     originalProfile.DeviceID = formData.deviceID;
                     
                     setTimeout(() => {
-                        window.location.href = '/public/showProfile.html';
+                        window.location.href = '/public/garage.html';
                     }, 1500);
                 } else {
                     messageDiv.innerHTML = `<div class="error">Error: ${result.error || 'Failed to update profile'}</div>`;
@@ -121,7 +120,7 @@
         });
 
         function goBack() {
-            window.location.href = '/public/showProfile.html';
+            window.location.href = '/public/garage.html';
         }
 
         window.addEventListener('beforeunload', function(e) {

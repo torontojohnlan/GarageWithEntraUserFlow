@@ -16,7 +16,7 @@
 <div id="profileMenu" class="profile-menu">
   <div class="profile-menu-header">
     <h3>👤 User Profile</h3>
-    <button id="closeMenu" class="close-btn">&times;</button>
+    <button id="closeMenu" class="close-btn" type="button">&times;</button>
   </div>
   <div class="profile-menu-content">
     <div class="profile-item">
@@ -29,7 +29,7 @@
     </div>
     <div class="profile-menu-actions">
       <a href="/public/editProfile.html" class="btn btn-primary">Edit Profile</a>
-      <button id="logoutBtn" class="btn btn-secondary">🔒 Logout</button>
+      <button id="logoutBtn" type="button" class="btn btn-secondary">🔒 Logout</button>
     </div>
   </div>
 </div>
@@ -56,81 +56,151 @@
         crossorigin="anonymous"></script>
 
 <script>
-  // Profile menu functionality
-  const profileBtn = document.getElementById('profileBtn');
-  const profileMenu = document.getElementById('profileMenu');
-  const menuOverlay = document.getElementById('menuOverlay');
-  const closeMenu = document.getElementById('closeMenu');
+// Profile menu functionality
+const profileBtn = document.getElementById('profileBtn');
+const profileMenu = document.getElementById('profileMenu');
+const menuOverlay = document.getElementById('menuOverlay');
+const closeMenu = document.getElementById('closeMenu');
 
-  // Load user profile data
-  async function loadProfileData() {
+let profileDataLoaded = false;
+let menuIsOpen = false;
+
+// Load user profile data
+async function loadProfileData() {
+    if (profileDataLoaded) return;
+    
     try {
-      const res = await fetch('/api/retrieveUserProfile');
-      const user = await res.json();
-      if (user.error) {
+        const res = await fetch('/api/retrieveUserProfile');
+        const user = await res.json();
+        if (user.error) {
+            document.getElementById('menuDisplayName').innerText = 'Error loading';
+            document.getElementById('menuDeviceID').innerText = 'Error loading';
+            return;
+        }
+        document.getElementById('menuDisplayName').innerText = user.DisplayName || 'N/A';
+        document.getElementById('menuDeviceID').innerText = user.DeviceID || 'N/A';
+        profileDataLoaded = true;
+    } catch (err) {
         document.getElementById('menuDisplayName').innerText = 'Error loading';
         document.getElementById('menuDeviceID').innerText = 'Error loading';
-        return;
-      }
-      document.getElementById('menuDisplayName').innerText = user.DisplayName || 'N/A';
-      document.getElementById('menuDeviceID').innerText = user.DeviceID || 'N/A';
-    } catch (err) {
-      document.getElementById('menuDisplayName').innerText = 'Error loading';
-      document.getElementById('menuDeviceID').innerText = 'Error loading';
-      console.error(err);
+        console.error(err);
     }
-  }
+}
 
-  // Open menu
-  profileBtn.addEventListener('click', function() {
+// Open menu
+function openProfileMenu(e) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    if (menuIsOpen) return;
+    
+    menuIsOpen = true;
     profileMenu.classList.add('active');
     menuOverlay.classList.add('active');
+    document.body.classList.add('menu-open'); // Lock body scroll
     loadProfileData();
-  });
+}
 
-  // Close menu
-  function closeProfileMenu() {
+// Close menu
+function closeProfileMenu(e) {
+    if (e) {
+        e.preventDefault();
+        e.stopPropagation();
+    }
+    
+    if (!menuIsOpen) return;
+    
+    menuIsOpen = false;
     profileMenu.classList.remove('active');
     menuOverlay.classList.remove('active');
-  }
+    document.body.classList.remove('menu-open'); // Restore body scroll
+}
 
-  closeMenu.addEventListener('click', closeProfileMenu);
-  menuOverlay.addEventListener('click', closeProfileMenu);
+// Event listeners
+profileBtn.addEventListener('click', openProfileMenu);
+profileBtn.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    openProfileMenu(e);
+}, { passive: false });
 
-  // Close on escape key
-  document.addEventListener('keydown', function(e) {
-    if (e.key === 'Escape' && profileMenu.classList.contains('active')) {
-      closeProfileMenu();
+closeMenu.addEventListener('click', closeProfileMenu);
+closeMenu.addEventListener('touchstart', function(e) {
+    e.preventDefault();
+    closeProfileMenu(e);
+}, { passive: false });
+
+menuOverlay.addEventListener('click', closeProfileMenu);
+
+// Close on escape key
+document.addEventListener('keydown', function(e) {
+    if (e.key === 'Escape' && menuIsOpen) {
+        closeProfileMenu();
     }
-  });
+});
 
-  // Logout functionality
-  document.getElementById('logoutBtn').addEventListener('click', async function() {
+// Prevent scroll on menu content when at edges (iOS fix)
+let touchStartY = 0;
+const menuContent = document.querySelector('.profile-menu-content');
+
+menuContent.addEventListener('touchstart', function(e) {
+    touchStartY = e.touches[0].clientY;
+}, { passive: true });
+
+menuContent.addEventListener('touchmove', function(e) {
+    const touchY = e.touches[0].clientY;
+    const scrollTop = menuContent.scrollTop;
+    const scrollHeight = menuContent.scrollHeight;
+    const clientHeight = menuContent.clientHeight;
+    
+    // At top and scrolling up
+    if (scrollTop === 0 && touchY > touchStartY) {
+        e.preventDefault();
+    }
+    // At bottom and scrolling down
+    else if (scrollTop + clientHeight >= scrollHeight && touchY < touchStartY) {
+        e.preventDefault();
+    }
+}, { passive: false });
+
+// Logout functionality
+document.getElementById('logoutBtn').addEventListener('click', async function(e) {
+    e.preventDefault();
+    
     try {
-      // Call the logout API
-      const response = await fetch('/api/logout', {
-        method: 'POST',
-        headers: {
-          'Content-Type': 'application/json'
+        const response = await fetch('/api/logout', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+        
+        const data = await response.json();
+        
+        if (data.logoutUrl) {
+            window.location.href = data.logoutUrl;
+        } else {
+            console.error('No logout URL received');
+            window.location.href = '/public/logout.html';
         }
-      });
-      
-      const data = await response.json();
-      
-      if (data.logoutUrl) {
-        // Redirect to Entra logout URL which will then redirect to logout.html
-        window.location.href = data.logoutUrl;
-      } else {
-        console.error('No logout URL received');
-        // Fallback to just going to logout page
-        window.location.href = '/public/logout.html';
-      }
     } catch (error) {
-      console.error('Logout error:', error);
-      // Fallback to logout page
-      window.location.href = '/public/logout.html';
+        console.error('Logout error:', error);
+        window.location.href = '/public/logout.html';
     }
-  });
+});
+
+// Prevent auto-opening on page load
+document.addEventListener('DOMContentLoaded', () => {
+    closeProfileMenu(); // Ensure menu is closed initially
+});
+
+// Prevent auto-opening on resize
+window.addEventListener('resize', () => {
+    if (window.innerWidth <= 768 && menuIsOpen) {
+        closeProfileMenu(); // Close menu at 768px or below
+    }
+});
 </script>
 </body>
 </html>
