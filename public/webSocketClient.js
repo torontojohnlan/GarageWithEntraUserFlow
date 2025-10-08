@@ -4,7 +4,9 @@
 import makeClient from './node_modules/grage-lib-jl/dist/esm/client.js'; // front end script (browser) import statement has to be relative path
 import esp8266 from './node_modules/grage-lib-jl/dist/esm/esp8266.js';
 import util from './node_modules/grage-lib-jl/dist/esm/util.js';
-const debugFlag = location.hostname === "localhost" || location.hostname === "127.0.0.1";
+
+const serverSideDebugMode = new URLSearchParams(window.location.search).get('debug') === 'true';
+const debugFlag = location.hostname === "localhost" || location.hostname === "127.0.0.1" || serverSideDebugMode;
 console.log("grage.app.index.Window.onload, debugFlag: ", debugFlag);
 
 
@@ -14,41 +16,51 @@ function showDebugMsg(...args) {
         console.log(...args);
 }
 window.onload = async function () {
-    showDebugMsg("app.ts, window.onload");
+    showDebugMsg("[webSocketClient][webSocketClient], window.onload");
 
     const grage = makeClient();
     let id;
     try {
-        const res = await fetch('/api/retrieveUserProfile')
+        const res = await fetch('/api/retrieveUserProfile');
         const userDetails = await res.json();
-        showDebugMsg('Returned JSON object: ', userDetails)
+        if (!res.ok) {
+            throw new Error(`Retrieve User Profile Error! status: ${res.status}; message: ${userDetails.error}`); // userDetails may contain error details from server
+        }
+        showDebugMsg('[webSocketClient]Returned JSON object: ', userDetails)
         if (userDetails.error) {
             document.body.innerHTML = '<h1>Server Error</h1><p>An unexpected error occurred. Please try again later.</p>';
             // Optionally, you can log the error to the console
-            console.error('Error: user not authenticated', userDetails.error);
+            showDebugMsg('[webSocketClient] Error: user not authenticated', userDetails.error);
             // Note: You cannot set HTTP status code from client-side JavaScript,
             // but you can display an error message/page to the user.
             return;
         } else {
             id = userDetails.DeviceID;            // Although in ID token the field is called userDeviceID but in my JSON response, the field is shorten as DeviceID
-            showDebugMsg('User details retrieved from /api/retrieveUserProfile: ', id);
+            showDebugMsg('[webSocketClient]User details retrieved from /api/retrieveUserProfile: ', id);
         }
     } catch (err) {
-        showDebugMsg('Fetch /api/retrieveUserProfile error: ', err);
-        document.body.innerHTML = '<h1>Server Error</h1><p>An unexpected error occurred. Please try again later.</p>';
+        showDebugMsg('[webSocketClient]Fetch /api/retrieveUserProfile error: ', err);
+        let errorMessage = '';
+        if(debugFlag){errorMessage = `<h1>Debugflag is true </h1><p>${err.message}</p>`;}  //show error message only when debugFlag is true
+        document.body.innerHTML = `
+            <h1>Server Error</h1><p>An unexpected error occurred. Please try again later.</p>
+            ${errorMessage}
+            <button onclick="window.location.href='/'">Back To Homepage</button>
+        `;
         return;
     }
 
     //if no device selected, return to index
-    showDebugMsg('deviceID: ', id);
+    showDebugMsg('[webSocketClient]deviceID: ', id);
     if (!id) {
-        showDebugMsg('No deviceID retrieved, giving user chance to login again.');
+        showDebugMsg('[webSocketClient]No deviceID retrieved, giving user chance to login again.');
         // show a button to let user go back to login page
         // window.location.href = 'index.html';
+        document.body.innerHTML = '<h1>Server Error</h1><p>No deviceID retrieved.</p>';
         return;
     }
     else {
-        showDebugMsg('grage-door app.ts, device id: ', id);
+        showDebugMsg('[webSocketClient]grage-door, device id: ', id);
     }
     //esp constants
     const sensorPin = esp8266.Pin.D6, controlPin = esp8266.Pin.D7;
@@ -62,13 +74,13 @@ window.onload = async function () {
             lastUpdate.innerText = 'Last update: ' + util.timeDifference(new Date(), lastUpdateTime);
     }, 1000);
     grage.onOpen(() => {
-        showDebugMsg("connection to server established, id of this session: ", id);
+        showDebugMsg("[webSocketClient]connection to server established, id of this session: ", id);
         toggle.disabled = false;
         //"toggle" is the button to open/close the garage door. When there is no valid connection, it shows "not connected" and is disabled.
         grage.connect(id, function dataPacketHandler(data) {
-            showDebugMsg("grage.connect.dataPacketHandler, incoming data: ", data);
+            showDebugMsg("[webSocketClient]grage.connect.dataPacketHandler, incoming data: ", data);
             const sense = data.pinReadings[sensorPin];
-            showDebugMsg(`data.pinReadings[12]: ${data.pinReadings[sensorPin]}`);
+            showDebugMsg(`[webSocketClient]data.pinReadings[12]: ${data.pinReadings[sensorPin]}`);
             if (sense === esp8266.LogicLevel.HIGH) {
                 indicator.innerText = 'open';
                 toggle.innerText = 'Close door';
@@ -82,7 +94,7 @@ window.onload = async function () {
         //when device becomes alive, run initialization stuff
         //such as setting up inputs, outputs and interrupts
         grage.onAlive(id, function alive() {
-            showDebugMsg('device is alive, id: ', id);
+            showDebugMsg('[webSocketClient]device is alive, id: ', id);
             //enable input then read
             grage.send(id, esp8266.pinMode(sensorPin, esp8266.PinMode.INPUT_PULLUP));
             grage.send(id, esp8266.attachInterrupt(sensorPin, esp8266.InterruptMode.CHANGE));
@@ -92,7 +104,7 @@ window.onload = async function () {
         });
         //when device becomes dead, disable ui again
         grage.onDead(id, function dead() {
-            showDebugMsg('device is dead, id: ', id);
+            showDebugMsg('[webSocketClient]device is dead, id: ', id);
             toggle.disabled = true;
             toggle.innerText = 'not connected';
             indicator.innerText = '';

@@ -9,6 +9,7 @@ const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 
 let localMode, PORT, protocol;
+let serverSideDebugMode = false;
 let tokenSigningKey;
 
 const HOST = process.env.WEBSITE_HOSTNAME || 'localhost';
@@ -27,7 +28,7 @@ if (HOST === 'localhost') {
   localMode = false;
   protocol = 'https';
   PORT = process.env.PORT;  //Azure app service will populate this var and the app must listen on this port
-
+  serverSideDebugMode = process.env.DEBUG;
   tokenSigningKey = process.env.TOKEN_SIGNING_KEY.replace(/\\n/g, '\n'); // for token signing
 
   console.log('[Local mode is OFF]. Using environment variables directly.');
@@ -512,8 +513,8 @@ app.get('/login', (req, res) => {
 });
 
 app.get('/redirect', async (req, res) => { // once Entra successfully authenticates the user, it will redirect to this endpoint with a code
-  showDebugMsg('[Main][/redirect] Received request with query:', req.query);
-  showDebugMsg('[Main][/redirect] request body: ', req);
+  // showDebugMsg('[Main][/redirect] Received request with query:', req.query);
+  // showDebugMsg('[Main][/redirect] request body: ', req);
   const code = req.query.code;
   if (!code) return res.redirect('/?error=auth_failed&message=Authentication failed. Please try again.');
   else {
@@ -579,7 +580,7 @@ app.get('/redirect', async (req, res) => { // once Entra successfully authentica
     // showDebugMsg('[Main][/redirect] Token response data:', tokenRes.data);
     showDebugMsg('[Main][/redirect] ID Token:', req.session.id_token);
     showDebugMsg("[/redirect] redirecting to /garage.html");
-    res.redirect('/public/garage.html');
+    res.redirect(`/public/garage.html?debug=${serverSideDebugMode}`);  // if the server is set to debugMode, we want the client to be in debugmode as well
   } catch (err) {
     console.error('[/redirect] Token exchange error:', err.response?.data || err.message);
     res.status(500).send('Token exchange failed');

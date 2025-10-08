@@ -13,3 +13,4 @@ Right now in ws.js, it sends back a type='error' message so we need to handle it
 
 
 4. still need a CAE to valid deviceID that a user proposed
+5. add a header to include debug flag when redirect to client pages. Then in client script check this flag to decide if to enable debug info display

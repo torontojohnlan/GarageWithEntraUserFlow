@@ -32,13 +32,45 @@ function getKey(header, callback) {
 }
 
 /**
+ * Helper function to retrieve issuer from Entra External ID OpenID configuration
+ * @param {string} tenantId - The tenant ID of the Entra External ID instance
+ * @returns {Promise<string>} - The issuer URL
+ * @throws {Error} - If unable to retrieve or parse the configuration
+ */
+async function getIssuerFromEntraExternalID(tenantId) {
+    if (!tenantId || typeof tenantId !== "string") {
+        throw new Error("tenantId must be a non-empty string");
+    }
+
+    const url = `https://${tenantId}.ciamlogin.com/${tenantId}/v2.0/.well-known/openid-configuration`;
+
+    try {
+        const response = await fetch(url);
+        if (!response.ok) {
+            throw new Error(`Failed to fetch OpenID configuration: ${response.status} ${response.statusText}`);
+        }
+
+        const data = await response.json();
+        if (!data.issuer) {
+            throw new Error("Issuer field not found in OpenID configuration");
+        }
+
+        return data.issuer;
+    } catch (err) {
+        console.error(`Error retrieving issuer for tenant ${tenantId}:`, err.message);
+        throw err;
+    }
+}
+
+
+/**
  * Validates an ID token from Entra ID
  * @param {string} token - The ID token to validate
  * @returns {Promise<object>} - Decoded and validated token payload
  * @throws {Error} - If token is invalid, expired, or malformed
  */
 async function validateIdToken(token) {
-    return new Promise((resolve, reject) => {
+    return new Promise(async (resolve, reject) => {
         if (!token) {
             reject(new Error('No token provided'));
             return;
@@ -54,7 +86,17 @@ async function validateIdToken(token) {
 
         // Verify and validate the token
         const TENANT_ID = process.env.TENANT_ID;
-        const issuer = `https://${TENANT_ID}.ciamlogin.com/${TENANT_ID}/v2.0`;
+        let issuer;
+        try {
+            issuer = await getIssuerFromEntraExternalID(TENANT_ID);
+            console.log(`[tokenValidator] Retrieved issuer: ${issuer}`);
+        }   catch (err) {
+            return reject(new Error(`Failed to retrieve issuer: ${err.message}`));
+        }
+        // const issuer = `https://${TENANT_ID}.ciamlogin.com/${TENANT_ID}/v2.0`;
+        // Note: The format of issuer may not always be same. For example, older tenants may use TENANT_NAME in place of TENANT_ID.
+        // We should fetch https://<tenantId>.ciamlogin.com/<tenantId>/v2.0/.well-known/openid-configuration
+        // and use the "issuer" value from there for more robust validation.
         jwt.verify(token, getKey, {
             audience: CLIENT_ID,
             issuer: issuer,
