@@ -577,7 +577,7 @@ app.get('/redirect', async (req, res) => { // once Entra successfully authentica
 
     req.session.id_token = tokenRes.data.id_token;           // this is why we need express-session. We leverage session to store the id_token and access_token
     req.session.access_token = tokenRes.data.access_token;
-    // showDebugMsg('[Main][/redirect] Token response data:', tokenRes.data);
+    showDebugMsg('[Main][/redirect] access token:', req.session.access_token);
     showDebugMsg('[Main][/redirect] ID Token:', req.session.id_token);
     showDebugMsg("[/redirect] redirecting to /garage.html");
     res.redirect(`/public/garage.html?debug=${serverSideDebugMode}`);  // if the server is set to debugMode, we want the client to be in debugmode as well
@@ -616,7 +616,9 @@ app.get('/redirect', async (req, res) => { // once Entra successfully authentica
 
 //region extracts user profile from Microsoft Graph
 app.get('/api/retrieveUserProfile', async (req, res) => {
-  if (!req.session.access_token) return res.status(401).json({ error: 'Not authenticated' });
+  showDebugMsg('[Main][/api/retrieveUserProfile] ID token in req body:',req.session.id_token);
+  showDebugMsg('[Main][/api/retrieveUserProfile] access token in req body:',req.session.access_token);
+  if (!req.session.access_token) return res.status(401).json({ error: 'Access token null' });
 
   try {
     // Get fresh profile data from Microsoft Graph instead of cached ID token
@@ -639,8 +641,7 @@ app.get('/api/retrieveUserProfile', async (req, res) => {
     });
 
   } catch (error) {
-    console.error('Error fetching fresh profile:', error.response?.data || error.message);
-    console.log('Falling back to cached ID token for profile data.');
+    showDebugMsg('%c[api/f=retrieveUserProfile] Error fetching  profile:', 'color:red',error.response?.data || error.message);
     // Fallback to cached ID token if Graph call fails
     const base64Payload = req.session.id_token.split('.')[1];
     const payload = JSON.parse(Buffer.from(base64Payload, 'base64').toString());
