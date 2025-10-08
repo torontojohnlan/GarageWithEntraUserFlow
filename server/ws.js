@@ -1,6 +1,8 @@
 const WebSocket = require("ws");
 const { isChannelMessage, isConnectMessage, isDataMessage } = require("grage-lib-jl/lib"); //no longer need to specify exact path because in the library's package.json, it exports lib to the path for us
 const dotenv = require('dotenv');
+const { validateSessionToken } = require("./tokenValidator.js");
+
 
 const lostConnectionIntervals = new Map();
 let doorOpenTimeout;
@@ -8,14 +10,14 @@ const HOST = process.env.WEBSITE_HOSTNAME || 'localhost';
 let localMode;
 if (HOST === 'localhost') {
     localMode = true;
-}else{
+} else {
     localMode = false;
-    
+
 }
 
 function showDebugMsg(...args) {
-  if (process.env.DEBUG === 'true' || localMode)
-    console.log(...args);
+    if (process.env.DEBUG === 'true' || localMode)
+        console.log(...args);
 }
 
 showDebugMsg("[mySocketServer], local mode: ", localMode);
@@ -46,7 +48,8 @@ function makeWss(options = {
     let currentID = 1;
     return function handleConnection(currentWSsession, currentHTTPreq) {
         /**
-         * All local variables here are properties the connection(websocket session)
+         * All local variables here are properties the current connection(websocket session). 
+         * Meaning each session has its own set of properties, handlers, timers, etc.
          */
         const clientID = currentID++;
         let deviceID = '';
@@ -57,10 +60,15 @@ function makeWss(options = {
         let doorOpenAlertCount = 0;
         let lostConnectionAlertCount = 0;
         let readyForNewAlert = true;
+        let isAuthenticated = false;
+        let authenticatedDeviceID = null;
         // email parameters
         let emailer;
         const receipiant = process.env.DEFAULT_RECEIPIANT;
         const text = 'garage alert by John Lan';
+
+        let sessionToken = null;
+
         //regularly send ping with metadata. Comment out as this is not utilized yet anywhere
         // const metadataTimer = setInterval(function sendMetadata() {
         //     const meta: MetadataMessage = {
@@ -70,6 +78,8 @@ function makeWss(options = {
         //     };
         //     currentWSsession.send(JSON.stringify(meta));
         // }, options.ping);
+
+
         /**
          * Connects to a channel.
          * Only renews timeout if already connected.
@@ -147,7 +157,7 @@ function makeWss(options = {
                         let htmlBody = `
                             <h1>WARNING</h1>
                             <p>Your garage door has been offline for ${Math.round(options.maxIdleTimeAllowed * (lostConnectionAlertCount + 1)) / (60 * 1000)} minutes.</p>
-                            <p>Visit <a id="garageUI" href="https://grage.azurewebsites.net/apps/grage-door/">here to check status</>.</p>
+                            <p>Visit <a id="garageUI" href="https://grage.azurewebsites.net/">here to check status</>.</p>
                         `;
                         try {
                             emailer.sendEmailTo(receipiant, subject, text, htmlBody);
@@ -202,28 +212,110 @@ function makeWss(options = {
         // Majority of payload messages are handled here. 
         // Most important thing to remember is ws.ts as server doesn't really handle anything, it merely relays messages
         // to all other clients on same channel (same channel is defined by all sockets with same deviceID)
-        currentWSsession.on('message', function channelMessageHandler(message) {
+        currentWSsession.on('message', async function channelMessageHandler(message) {
             //showDebugMsg(`[on message] socket message received from client ${clientID}, url ${currentWSsession.url}`, message.toString());
             let m;
-            try {
+            try { //parse incoming message into JSON object
                 m = JSON.parse(message.toString());
-                showDebugMsg("[on message] Recieved socket message: ", message);
+                showDebugMsg("[ws.onMessage] Recieved socket message: ", message);
             }
             catch (err) {
-                showDebugMsg("[on message] Parsing incoming message excpetion", message);
+                showDebugMsg("[ws.onMessage] Parsing incoming message excpetion", message);
                 return; // skip maybe just a temporary corrupted messag
             }
             if (isChannelMessage(m)) {
                 //record deviceID
                 deviceID = m.id;
                 fromDevice = m.fromDevice;
+
+                if (!fromDevice) {
+                    // if this is a message not from a device (meaning this is a message from UI that can view/control devices)
+                    // then we need to verify the incoming request is legit. Ideally such verification should be done
+                    // on all incoming messages, best at the websocket connection reqest ( currentSession.on('connect'...))
+                    // but unfortunately programe on device is too simple to be integrated into Entra for any advanced
+                    // authentication methods. Our current design is simply accept any connection from someone who flags
+                    // itself as "device", in the meantime, we don't give such device type requestors any view, let
+                    // alone controlling, capacities in order to prevent malicious spoofing.
+
+                    // SECURE: Extract and validate token from session (which was established via HttpOnly cookie)
+                    // The session is attached to the request by express-session middleware
+                    // Note: This requires proper setup in server.js to share session store with WebSocket
+                    // showDebugMsg(`[handleConnection] currentHTTPreq: `, currentHTTPreq);
+
+                    if (currentHTTPreq.session) {
+                        sessionToken = currentHTTPreq.session.id_token;
+                        showDebugMsg(`[ws.onMessage][isChannelMessage & !fromDevice] Session found ID token for client ${clientID}  deviceID ${deviceID}, token: ${!!sessionToken}`);
+                        if (!isAuthenticated) {
+                            if (!sessionToken) {
+                                showDebugMsg(`%c[ws.onMessage][isChannelMessage & !fromDevice] UI client has no valid session token`, 'color:red');
+                                handleError(deviceID,fromDevice,new Error('Authentication required. Please log in.'));
+                                // below 7 lines are provided by AI. Comment out because my ws webSocketClient doesn't 
+                                // expect a returned JSON. Instead, the server will simply terminate the session by calling handleError()
+
+                                // const authError = {
+                                    //     type: "error",
+                                    //     error: "Authentication required. Please log in."
+                                    // };
+                                    // currentWSsession.send(JSON.stringify(authError));
+                                // terminate();
+                                return;
+                            }
+
+                            // Validate the token from session
+                            try {
+                                const decodedToken = await validateSessionToken(currentHTTPreq.session);
+                                showDebugMsg(`%c[ws.onMessage][isChannelMessage & !fromDevice] Token validated successfully`, 'color:green',decodedToken);
+
+                                // Extract deviceID from token
+                                authenticatedDeviceID = decodedToken.deviceID;
+
+                                if (!authenticatedDeviceID) {
+                                    showDebugMsg(`%c[ws.onMessage][isChannelMessage & !fromDevice] No deviceID found in token. Available claims:`, 'color:red', Object.keys(decodedToken));
+                                    handleError(deviceID,fromDevice,new Error("No device ID associated with this account."));
+                                }
+
+                                // Verify the deviceID in the message matches the token's deviceID
+                                if (deviceID !== authenticatedDeviceID) {
+                                    showDebugMsg(`%c[ws.onMessage][isChannelMessage & !fromDevice] DeviceID mismatch. Token deviceID: ${authenticatedDeviceID}, Requested deviceID: ${deviceID}`, 'color:red');
+                                    handleError(deviceID,fromDevice,new Error("You are not authorized to access this device."));
+                                }
+
+                                // Authentication successful
+                                isAuthenticated = true;
+                                showDebugMsg(`%c[ws.onMessage][isChannelMessage & !fromDevice] UI client authenticated successfully for device: ${deviceID}`, 'color:green');
+
+                            } catch (error) { // token validation exception
+                                console.error(`[ws.onMessage][isChannelMessage & !fromDevice] Token validation exception:`, error.message);
+                                handleError(deviceID,fromDevice,error);
+                            }
+                        } else { // else of if(!isAuthenticated), i.e. isAuthenticated == true
+                            // For subsequent messages, verify deviceID still matches
+                            if (deviceID !== authenticatedDeviceID) {
+                                showDebugMsg(`%c[ws.onMessage][isChannelMessage & !fromDevice] Authenticated client attempting to access unauthorized device`, 'color:red');
+                                const authError = { // user is authenticated but trying to access a different deviceID than the one associated with the token
+                                    type: "error",
+                                    error: "You are not authorized to access this device."
+                                };
+                                currentWSsession.send(JSON.stringify(authError)); // whether we should send this authError back depends on if client is coded to handle it. Will check later
+                                showDebugMsg(`[ws.onMessage][isChannelMessage & !fromDevice] Authenticated user trying to access deviceID that doesn't belong to him ${clientID} deviceID ${deviceID}. Terminating current session`);
+
+                                // return;  // if client handles authError message, then we can use return statement here. Otherwise ws server can simply terminate the session by "handleError"
+                                //or 
+                                handleError(deviceID, false, err);  // john's line, keep?
+                            }
+                        } // block end of if(!isAuthenticated)
+                    } else { // else of if (currentHTTPreq.session)
+                        // code in this block should never be executed as there shouldn't be any incoming HTTP req without a session
+                    }  // end of if (currentHTTPreq.session)
+                } // end of if (!fromDevice)
+
                 //send to every client in certain channel (relay)
                 for (const client of getSockets(deviceID)) {
                     //skip currentWSsession (person who sent message)
                     if (client !== currentWSsession)
                         client.send(JSON.stringify(m), (err) => {
                             if (err) {
-                                showDebugMsg(`%c[onMessage].Failed to relay, HandleError will be called next, which will close socket. Device:${deviceID}`, "color: red");
+                                showDebugMsg(`%c[ws.onMessage][isChannelMessage & !fromDevice].Failed to relay, HandleError will be called next, which will close socket. Device:${deviceID}`, "color: red");
                                 handleError(deviceID, fromDevice, err);
                             }
                         });
@@ -279,7 +371,7 @@ function makeWss(options = {
                                         let htmlBody = `
                                                 <h1>WARNING</h1>
                                                 <p>Your garage door has been open for ${Math.round(doorOpenDuration / (60 * 1000))} minutes.</p>
-                                                <p>Visit <a id="garageUI" href="https://grage.azurewebsites.net/apps/grage-door/">here to check status</>.</p>
+                                                <p>Visit <a id="garageUI" href="https://grage.azurewebsites.net/">here to check status</>.</p>
                                             `;
                                         try {
                                             emailer.sendEmailTo(receipiant, subject, text, htmlBody);
@@ -307,10 +399,10 @@ function makeWss(options = {
                     const pinReadings = m.data.pinReadings;
                     const now = new Date();
                     if (pinReadings[12] === 0x01) { // door open
-                        showDebugMsg(`[onMessage][${deviceID}] Door open status received`);
+                        showDebugMsg(`[ws.onMessage][${deviceID}] Door open status received`);
                     } // door open
                     if (pinReadings[12] === 0x00) { // door closed
-                        showDebugMsg(`[onMessage][${deviceID}] Door close status received, doorOpenCheck should reset doorOpenDuration in coming cycle1`);
+                        showDebugMsg(`[ws.onMessage][${deviceID}] Door close status received, doorOpenCheck should reset doorOpenDuration in coming cycle1`);
                         lastCLoseReported = now;
                         doorOpenAlertCount = 0;
                         clearTimeout(doorOpenTimeout);
@@ -321,14 +413,14 @@ function makeWss(options = {
                 showDebugMsg("[on message] This is a connect request");
                 connect(m.id);
             }
-            else {
+            else { // not a recognized message type
                 //commented out by John. Do we need to call handleError for a message we don't recognize? It's OK to show a error message, but handleError
                 // may terminate the connnection too, which we probaly don't want to do.
                 //handleError(new Error(`Invalid message type: ${m.type}`));
                 showDebugMsg(`[[on message] [unrecognized message type] ${(JSON.stringify(m))}`, clientID); // added John. Instead of terminate the connection, just log the error message.
             } // end of different msg types
-        }); // end of on.message function
-    }; // end of handle connection
+        }); // end of channelMessageHandler and end of on.message function
+    }; // end of handleConnection
 }
 
 module.exports = makeWss;

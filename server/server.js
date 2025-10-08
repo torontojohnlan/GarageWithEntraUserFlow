@@ -8,22 +8,10 @@ const app = express();
 const jwt = require('jsonwebtoken');
 const { v4: uuidv4 } = require('uuid');
 
-const expressWs = require('express-ws');
-expressWs(app);
-
-console.log('Initializing websocket server.');
-const makeWss = require('./ws.js');
-const wsHandler = makeWss();
-app.ws('/ws', wsHandler);
-console.log('Websocket server initialized.');
-
-
-app.use('/public', express.static('public')); //apps route is the client interface portion of this app
-
-const HOST = process.env.WEBSITE_HOSTNAME || 'localhost';
-
 let localMode, PORT, protocol;
 let tokenSigningKey;
+
+const HOST = process.env.WEBSITE_HOSTNAME || 'localhost';
 if (HOST === 'localhost') {
   require('dotenv').config({ path: ".env.EntraParameters" });
   require('dotenv').config({ path: ".env.appParameters" });
@@ -45,11 +33,6 @@ if (HOST === 'localhost') {
   console.log('[Local mode is OFF]. Using environment variables directly.');
 }
 
-function showDebugMsg(...args) {
-  if (process.env.DEBUG === 'true' || localMode)
-    console.log(...args);
-}
-
 const CLIENT_ID = process.env.CLIENT_ID;
 const CLIENT_SECRET = process.env.CLIENT_SECRET;
 const tenantId = process.env.TENANT_ID; // Use your tenant ID or set it in .env
@@ -63,18 +46,45 @@ const REDIRECT_URI = `${protocol}://${URI}/redirect`;
 const API_SCOPE = `api://${URI}/${CLIENT_ID}/deviceID.clone`; // prerequisite: you need to create a scope in Entra ID for your API, e.g., api://<your-client-id>/deviceID
 const GARAGE_CERT_THUMBPRINT = process.env.GARAGE_CERT_THUMBPRINT; // Thumbprint of the certificate used to sign the JWT token
 
+function showDebugMsg(...args) {
+  if (process.env.DEBUG === 'true' || localMode)
+    console.log(...args);
+}
+
 showDebugMsg(`[Main]Using AUTHORITY: ${AUTHORITY}`);
 showDebugMsg(`[Main]Using REDIRECT_URI: ${REDIRECT_URI}`);
 showDebugMsg(`[Main]Using API_SCOPE: ${API_SCOPE}`);
 
-app.use(express.json());
-showDebugMsg(`[Main]setting up [public] static path`);
-app.use(express.static('public'));
+
+// session middleware must be registered before the express-ws middleware for websokcet server to see the session
+// middleware register order matters.
+
 app.use(session({
   secret: 'your_secret_v3ry_$7r0ng_secret', // Use a strong secret for session encryption
   resave: false,
-  saveUninitialized: true
-}));
+  saveUninitialized: true,
+  cookie: {
+    httpOnly: true,           // Prevents JavaScript access to cookie
+    secure: !localMode,       // Only send cookie over HTTPS in production
+    sameSite: 'lax',          // CSRF protection
+    maxAge: 1 * 60 * 60 * 1000  // 1 hours
+  }}));
+
+const expressWs = require('express-ws');
+expressWs(app);
+
+console.log('Initializing websocket server.');
+const makeWss = require('./ws.js');
+const wsHandler = makeWss();
+app.ws('/ws', wsHandler);
+console.log('Websocket server initialized.');
+
+
+app.use('/public', express.static('public')); //apps route is the client interface portion of this app
+
+app.use(express.json());
+showDebugMsg(`[Main]setting up [public] static path`);
+app.use(express.static('public'));
 showDebugMsg('[Main]Successfully finished setting up main web server');
 //#region Define custom auth extension API - not in use. This was for when I thought I need to clone deviceID during sign-up. 
 // candidate to be removed
@@ -564,7 +574,7 @@ app.get('/redirect', async (req, res) => { // once Entra successfully authentica
     }));
 
 
-    req.session.id_token = tokenRes.data.id_token;
+    req.session.id_token = tokenRes.data.id_token;           // this is why we need express-session. We leverage session to store the id_token and access_token
     req.session.access_token = tokenRes.data.access_token;
     // showDebugMsg('[Main][/redirect] Token response data:', tokenRes.data);
     showDebugMsg('[Main][/redirect] ID Token:', req.session.id_token);

@@ -1,16 +1,15 @@
-edit profile works
-go back to profile page from edit page has to be refresh to reflect the new deviceID
-
-still need a CAE to valid deviceID that a user proposed
-
-1. working on CAE that checks existing deviceID - to do: will publish the app as it takes in gmail users. CAE will be for next version
-2. I am going to remove p parameter in /login route. Need to verify if correct user flow is used
-3. Need logout.html revised for people to log back in
-
-change project grage-lib-jl as per claude.ai
-update npm version
-publish
-update in this main app
 
 at beginning of /redirect we need to check Entra's repoonse in req.body to see if authentication was successful. /redirect should pass the error to /login page before redirect to /
 Ideally index.html should then give user a error message
+
+to add token validation in /editProfile and /showProfile endpoints
+
+
+TODO:
+Right now in ws.js, it sends back a type='error' message so we need to handle it in client.ts and webSocketClient.js
+1. in grage-lib-jl/client.ts, add a if clause to handle type='error' message. This can be inserted right after message is parsed into JSON object in ws.onmessage function
+2. in grage-lib-jl/client.ts, push the errorListener function into the listeners array in connect() function
+3. then in webSocketClient.js, define the errorListener function to handle type='error' message. It should display the error message with an element of garage.html
+
+
+4. still need a CAE to valid deviceID that a user proposed
