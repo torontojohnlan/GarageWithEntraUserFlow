@@ -62,6 +62,10 @@ const profileMenu = document.getElementById('profileMenu');
 const menuOverlay = document.getElementById('menuOverlay');
 const closeMenu = document.getElementById('closeMenu');
 
+fetch('/api/session-info')
+  .then(r => r.json())
+  .then(data => console.log('[embedded script] Session info:', data));
+
 let profileDataLoaded = false;
 let menuIsOpen = false;
 
@@ -69,6 +73,7 @@ let menuIsOpen = false;
 async function loadProfileData() {
     if (profileDataLoaded) return;
     
+    console.log('[loadProfileData] Fetching user profile data...');
     try {
         const res = await fetch('/api/retrieveUserProfile');
         const user = await res.json();

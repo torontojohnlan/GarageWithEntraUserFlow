@@ -191,6 +191,16 @@ app.get('/redirect', async (req, res) => { // once Entra successfully authentica
   }
 });
 
+app.get('/api/session-info', (req, res) => {
+  res.json({
+    sessionID: req.sessionID,
+    hasTokens: {
+      id_token: !!req.session.id_token,
+      access_token: !!req.session.access_token
+    }
+  });
+});
+
 //region extracts user profile from ID token
 // app.get('/api/retrieveUserProfile', (req, res) => {
 //   if (!req.session.id_token) return res.status(401).json({ error: 'Not authenticated' });
@@ -220,6 +230,7 @@ app.get('/redirect', async (req, res) => { // once Entra successfully authentica
 
 //region extracts user profile from Microsoft Graph
 app.get('/api/retrieveUserProfile', async (req, res) => {
+  showDebugMsg('[Main][/api/retrieveUserProfile] req:', req);
   showDebugMsg('[Main][/api/retrieveUserProfile] ID token in req body:', req.session.id_token);
   showDebugMsg('[Main][/api/retrieveUserProfile] access token in req body:', req.session.access_token);
   showDebugMsg('[Main][/api/retrieveUserProfile] sessionID:', req.session.sessionID);

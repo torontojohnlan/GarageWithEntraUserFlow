@@ -9,7 +9,9 @@ const serverSideDebugMode = new URLSearchParams(window.location.search).get('deb
 const debugFlag = location.hostname === "localhost" || location.hostname === "127.0.0.1" || serverSideDebugMode;
 console.log("grage.app.index.Window.onload, debugFlag: ", debugFlag);
 
-
+fetch('/api/session-info')
+  .then(r => r.json())
+  .then(data => console.log('[wsClient] Session info:', data));
 
 function showDebugMsg(...args) {
     if (debugFlag)
@@ -21,6 +23,7 @@ window.onload = async function () {
     const grage = makeClient();
     let id;
     try {
+        console.log('[win.onload] Fetching user profile data...');
         const res = await fetch('/api/retrieveUserProfile');
         const userDetails = await res.json();
         if (!res.ok) {
@@ -41,7 +44,7 @@ window.onload = async function () {
     } catch (err) {
         showDebugMsg('[webSocketClient]Fetch /api/retrieveUserProfile error: ', err);
         let errorMessage = '';
-        if(debugFlag){errorMessage = `<h1>Debugflag is true </h1><p>${err.message}</p>`;}  //show error message only when debugFlag is true
+        if (debugFlag) { errorMessage = `<h1>Debugflag is true </h1><p>${err.message}</p>`; }  //show error message only when debugFlag is true
         document.body.innerHTML = `
             <h1>Server Error</h1><p>An unexpected error occurred. Please try again later.</p>
             ${errorMessage}
