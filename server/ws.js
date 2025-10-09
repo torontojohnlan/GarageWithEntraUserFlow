@@ -244,7 +244,7 @@ function makeWss(options = {
 
                     if (currentHTTPreq.session) {
                         sessionToken = currentHTTPreq.session.id_token;
-                        showDebugMsg(`[ws.onMessage][isChannelMessage & !fromDevice] Session found ID token for client ${clientID}  deviceID ${deviceID}, token: ${!!sessionToken}`);
+                        showDebugMsg(`[ws.onMessage][isChannelMessage & !fromDevice] Session found ID token for sessionID ${currentHTTPreq.session.sessionID}  deviceID ${deviceID}, token: ${!!sessionToken}`);
                         if (!isAuthenticated) {
                             if (!sessionToken) {
                                 showDebugMsg(`%c[ws.onMessage][isChannelMessage & !fromDevice] UI client has no valid session token`, 'color:red');
