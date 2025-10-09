@@ -232,7 +232,7 @@ app.get('/api/session-info', (req, res) => {
 app.get('/api/retrieveUserProfile', async (req, res) => {
   showDebugMsg('[Main][/api/retrieveUserProfile] ID token in req body:', req.session.id_token);
   showDebugMsg('[Main][/api/retrieveUserProfile] access token in req body:', req.session.access_token);
-  showDebugMsg('[Main][/api/retrieveUserProfile] sessionID:', req.session.sessionID);
+  showDebugMsg('[Main][/api/retrieveUserProfile] sessionID:', req.sessionID);
   if (!req.session.access_token) return res.status(401).json({ error: 'Access token null' });
 
   try {
