@@ -230,7 +230,6 @@ app.get('/api/session-info', (req, res) => {
 
 //region extracts user profile from Microsoft Graph
 app.get('/api/retrieveUserProfile', async (req, res) => {
-  showDebugMsg('[Main][/api/retrieveUserProfile] req:', req);
   showDebugMsg('[Main][/api/retrieveUserProfile] ID token in req body:', req.session.id_token);
   showDebugMsg('[Main][/api/retrieveUserProfile] access token in req body:', req.session.access_token);
   showDebugMsg('[Main][/api/retrieveUserProfile] sessionID:', req.session.sessionID);
