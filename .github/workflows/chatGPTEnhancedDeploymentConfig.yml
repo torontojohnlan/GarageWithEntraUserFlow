@@ -6,7 +6,7 @@ name: Build and deploy Node.js app to Azure Web App - grage
 on:
   push:
     branches:
-      - UserFlow-+-Garage
+      - GarageWithUserFlow
   workflow_dispatch:
 
 jobs:
