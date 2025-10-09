@@ -217,7 +217,7 @@ function makeWss(options = {
             let m;
             try { //parse incoming message into JSON object
                 m = JSON.parse(message.toString());
-                showDebugMsg("[ws.onMessage] Recieved socket message: ", message);
+                // showDebugMsg("[ws.onMessage] Recieved socket message: ", message);
             }
             catch (err) {
                 showDebugMsg("[ws.onMessage] Parsing incoming message excpetion", message);
@@ -392,17 +392,17 @@ function makeWss(options = {
                     // if a lostConnectionInterval exists, remove it
                     clearInterval(lostConnectionIntervals.get(deviceID));
                     lostConnectionIntervals.delete(deviceID);
-                    showDebugMsg(`[on message][${deviceID}] device is online, removed IdleChecker. Disconnected but still monitored devices: ${[...lostConnectionIntervals.keys()]}`);
+                    // showDebugMsg(`[on message][${deviceID}] device is online, removed IdleChecker. Disconnected but still monitored devices: ${[...lostConnectionIntervals.keys()]}`);
                 }
                 if (fromDevice && isDataMessage(m)) { // update lastOpen time
                     // update lastOpen metrics
                     const pinReadings = m.data.pinReadings;
                     const now = new Date();
                     if (pinReadings[12] === 0x01) { // door open
-                        showDebugMsg(`[ws.onMessage][${deviceID}] Door open status received`);
+                        // showDebugMsg(`[ws.onMessage][${deviceID}] Door open status received`);
                     } // door open
                     if (pinReadings[12] === 0x00) { // door closed
-                        showDebugMsg(`[ws.onMessage][${deviceID}] Door close status received, doorOpenCheck should reset doorOpenDuration in coming cycle1`);
+                        // showDebugMsg(`[ws.onMessage][${deviceID}] Door close status received, doorOpenCheck should reset doorOpenDuration in coming cycle1`);
                         lastCLoseReported = now;
                         doorOpenAlertCount = 0;
                         clearTimeout(doorOpenTimeout);
