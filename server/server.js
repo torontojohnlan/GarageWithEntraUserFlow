@@ -56,6 +56,12 @@ showDebugMsg(`[Main]Using AUTHORITY: ${AUTHORITY}`);
 showDebugMsg(`[Main]Using REDIRECT_URI: ${REDIRECT_URI}`);
 showDebugMsg(`[Main]Using API_SCOPE: ${API_SCOPE}`);
 
+// CRITICAL FOR AZURE: Trust the proxy (Azure's load balancer)
+// This tells Express to trust X-Forwarded-* headers from the load balancer
+if (!localMode) {
+  app.set('trust proxy', 1);
+  // showDebugMsg('[Main] Proxy trust enabled for Azure deployment');
+}
 
 // session middleware must be registered before the express-ws middleware for websokcet server to see the session
 // middleware register order matters.
